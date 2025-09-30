@@ -1,6 +1,5 @@
 #install packages
 
-
 #load libraries
 library(readr)
 library(tidyr)
@@ -169,7 +168,69 @@ df_final <- df_final %>%
 df_final <- df_final %>%
   filter(!is.na(has_debit_card))
 
+########################summary statistics################################
 
+dim(df_final)                                 #number of observations and variables
+mean(df_final$female, na.rm = TRUE)           #ratio of female
+mean(df_final$age, na.rm = TRUE)              #mean of age
+min(df_final$age, na.rm = TRUE)               #minimum of age
+max(df_final$age, na.rm = TRUE)               #maximum of age
+mean(df_final$income_q, na.rm = TRUE)         #mean of income quintile
+min(df_final$income_q, na.rm = TRUE)          #minimum of income quintile
+max(df_final$income_q, na.rm = TRUE)          #maximum of income quintile
 
+######################exploratory data analysis (EDA)##########################
 
-#### Heejun: Exploratory data analysis (EDA) and summary statistics
+#load libraries
+library(ggcorrplot)
+
+#prepare variable lists
+target_col <- "has_debit_card"
+predictors <- setdiff(names(df_final), target_col)
+
+#boxplots
+df_final %>%
+  pivot_longer(cols = all_of(predictors),
+               names_to = "variable",
+               values_to = "value") %>%
+  ggplot(aes(x = factor(!!sym(target_col)), y = value)) +
+  geom_boxplot(outlier.size = 0.8, outlier.alpha = 0.4) +
+  facet_wrap(~ variable, scales = "free", ncol = 3) +
+  labs(
+    title = "distribution by has_debit_card",
+    x = "has_debit_card",
+    y = "value"
+  ) +
+  theme_minimal() +
+  theme(strip.text = element_text(size = 8))
+
+#correlation matrix 
+corr_mat <- cor(df_final, use = "pairwise.complete.obs")
+ggcorrplot(corr_mat,
+           hc.order = TRUE,
+           type = "lower",
+           lab = TRUE,
+           lab_size = 3,
+           title = "Correlation matrix (all variables)")
+
+#barplot of absolute correlations
+cor_with_target <- 
+  tibble(
+    variable = predictors,
+    correlation = map_dbl(predictors,
+                          ~ cor(df_final[[.x]], df_final[[target_col]],
+                                use = "pairwise.complete.obs"))
+  ) %>%
+  mutate(abs_corr = abs(correlation)) %>%
+  arrange(desc(abs_corr))
+cor_with_target %>%
+  slice_head(n = 20) %>%
+  mutate(variable = fct_reorder(variable, abs_corr)) %>%
+  ggplot(aes(x = abs_corr, y = variable)) +
+  geom_col() +
+  labs(
+    title = "Top predictors by absolute Pearson correlation with has_debit_card",
+    x = "|correlation|",
+    y = NULL
+  ) +
+  theme_minimal()
