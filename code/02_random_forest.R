@@ -1,74 +1,290 @@
-#libraries
+################################################################################
+# Libraries
+################################################################################
 library(randomForest)
+library(caret)
+library(doParallel)
+library(ggplot2)
+library(smotefamily)
+library(pROC)
+library(MLmetrics)
 
-#loading the data 
-data <- read.csv("data/processed/df_final.csv")
 
-#looking at the data in a descriptive way
+################################################################################
+# Data Loading & Preparation
+################################################################################
+
+#Higher perfomance (only if necessary!!!)
+#cl <- makeCluster(detectCores()-3)
+#registerDoParallel(cl)
+
+# Load raw data
+data <- read.csv("~/Desktop/ML Finance/ML-in-Finance/data/processed/df_final.csv")
+
+# Inspect structure
 summary(data)
 str(data)
 
-#making a binary factor out of binary variables stored as integer
-data$female <- factor(data$female, levels = c(0,1), labels = c("male","female"))
-data$urban <- factor(data$urban, levels = c(0,1), labels = c("rural","urban"))
-data$employed <- factor(data$employed, levels = c(0,1), labels = c("unemployed","employed"))
-data$rec_gov_transfer <- factor(data$rec_gov_transfer, levels = c(0,1), labels = c("No","Yes"))
+# Convert binary integers to factors
+data$female          <- factor(data$female, levels = c(0,1), labels = c("male","female"))
+data$urban           <- factor(data$urban, levels = c(0,1), labels = c("rural","urban"))
+data$employed        <- factor(data$employed, levels = c(0,1), labels = c("unemployed","employed"))
+data$rec_gov_transfer<- factor(data$rec_gov_transfer, levels = c(0,1), labels = c("No","Yes"))
 data$rec_gov_pension <- factor(data$rec_gov_pension, levels = c(0,1), labels = c("No","Yes"))
-data$rec_agri_payment <- factor(data$rec_agri_payment, levels = c(0,1), labels = c("No","Yes"))
-data$paid_ut_bill <- factor(data$paid_ut_bill, levels = c(0,1), labels = c("No","Yes"))
-data$internetaccess <- factor(data$internetaccess, levels = c(0,1), labels = c("No","Yes"))
-data$mobileowner <- factor(data$mobileowner, levels = c(0,1), labels = c("No","Yes"))
-data$has_debit_card <- factor(data$has_debit_card, levels = c(0,1), labels = c("No","Yes"))
+data$rec_agri_payment<- factor(data$rec_agri_payment, levels = c(0,1), labels = c("No","Yes"))
+data$paid_ut_bill    <- factor(data$paid_ut_bill, levels = c(0,1), labels = c("No","Yes"))
+data$internetaccess  <- factor(data$internetaccess, levels = c(0,1), labels = c("No","Yes"))
+data$mobileowner     <- factor(data$mobileowner, levels = c(0,1), labels = c("No","Yes"))
+data$has_debit_card  <- factor(data$has_debit_card, levels = c(0,1), labels = c("No","Yes"))
 
-#making ordinary factors out of factors stored as integer (ordered = TRUE because there is a logical order)
-data$educ <- factor(data$educ, levels = c(1,2,3), labels = c("primary_or_less","secondary","tertiary_or_more"), ordered = TRUE)
-data$income_q <- factor(data$income_q, level = c(1,2,3,4,5), labels = c("poorest_20","second_20","middle_20","fourth_20","richest_20"), ordered = TRUE)
+# Convert ordinal variables
+data$educ <- factor(data$educ, 
+                    levels = c(1,2,3), 
+                    labels = c("primary_or_less","secondary","tertiary_or_more"), 
+                    ordered = TRUE)
 
-################################################################################
-#only full data
-################################################################################
+data$income_q <- factor(data$income_q, 
+                        level = c(1,2,3,4,5), 
+                        labels = c("poorest_20","second_20","middle_20","fourth_20","richest_20"), 
+                        ordered = TRUE)
 
-#using only full data
+# Keep only complete cases
 data_clean <- na.omit(data)
 
-#starting a default random forest (500)
+
+################################################################################
+# Data splitting
+################################################################################
+
+#70 % training 30 % testing
+set.seed(67)
+train_index <- createDataPartition(data_clean$has_debit_card, p = 0.7, list = FALSE)
+data_train <- data_clean[train_index, ]
+data_test  <- data_clean[-train_index, ]
+
+#set distributions
+cat("training distribution:\n")
+print(table(data_train$has_debit_card))
+cat("test distribution:\n")
+print(table(data_test$has_debit_card))
+
+################################################################################
+# Tree stabilization analysis OOB
+################################################################################
+
 set.seed(67)
 
-rf_default_500 <- randomForest( has_debit_card ~ ., data= data_clean, importance=TRUE, keep.forest = TRUE, keep.inbag = TRUE, ntree=500)
+# Range of trees to test
+tree_counts <- c(500, 1000, 5000)
 
-print(rf_default_500)
+rf_models <- list()
 
-#error rate plot
-plot(1:nrow(rf_default_500$err.rate), rf_default_500$err.rate[,"OOB"], 
-     type="l", lwd=2, col="blue", log="x",
-     xlab="Number of trees (log scale)", 
-     ylab="OOB Error rate",
-     main="Random Forest Classification Error (OOB)")
+for (nt in tree_counts) {
+  rf_models[[as.character(nt)]] <- randomForest(
+    has_debit_card ~ ., data = data_train,
+    importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
+    ntree = nt
+  )
+}
 
-# looking at at bigger random forest to see when it stabilizes (5000)
+# Plot OOB error for each ntree
+par(mfrow = c(2,2))  # 4 plots on one page
 
+for (nt in tree_counts) {
+  err <- rf_models[[as.character(nt)]]$err.rate
+  
+  # Linear scale
+  plot(1:nrow(err), err[,"OOB"], type="l", lwd=2, col="blue",
+       xlab="Number of trees", ylab="OOB Error rate",
+       main=paste("OOB Error (", nt, " trees, linear)", sep=""))
+  
+  # Log scale
+  plot(1:nrow(err), err[,"OOB"], type="l", lwd=2, col="blue", log="x",
+       xlab="Number of trees (log scale)", ylab="OOB Error rate",
+       main=paste("OOB Error (", nt, " trees, log)", sep=""))
+  
+  # Class-specific error (linear)
+  matplot(1:nrow(err), err, type="l", lty=1, lwd=2,
+          col=c("blue","red","darkgreen"),
+          xlab="Number of trees", ylab="Error rate",
+          main=paste("Class Error (", nt, " trees, linear)", sep=""))
+  legend("topright", legend=colnames(err),
+         col=c("blue","red","darkgreen"), lty=1, lwd=2, cex=0.8)
+  
+  # Class-specific error (log)
+  matplot(1:nrow(err), err, type="l", lty=1, lwd=2, log="x",
+          col=c("blue","red","darkgreen"),
+          xlab="Number of trees (log scale)", ylab="Error rate",
+          main=paste("Class Error (", nt, " trees, log)", sep=""))
+  legend("topright", legend=colnames(err),
+         col=c("blue","red","darkgreen"), lty=1, lwd=2, cex=0.8)
+}
+
+par(mfrow=c(1,1))  # reset
+
+
+################################################################################
+# Optimization of mtry and trees with OOB (with Accuracy)
+################################################################################
 set.seed(67)
+p <- ncol(data_train) - 1
+tunegrid <- expand.grid(.mtry = 1:p)
+ntree_values <- c(100, 200, 500, 750, 1000)
 
-rf_default_5000 <- randomForest( has_debit_card ~ ., data= data_clean, importance=TRUE, keep.forest = TRUE, keep.inbag = TRUE, ntree=5000)
+control_oob <- trainControl(method = "oob")
 
-print(rf_default_5000)
+results_oob <- list()
 
-#error rate plot
-plot(1:nrow(rf_default_5000$err.rate), rf_default_5000$err.rate[,"OOB"], 
-     type="l", lwd=2, col="blue", log="x",
-     xlab="Number of trees (log scale)", 
-     ylab="OOB Error rate",
-     main="Random Forest Classification Error (OOB)")
+for (nt in ntree_values) {
+  cat("==== OOB: ntree =", nt, "====\n")
+  
+  rf_oob <- train(
+    has_debit_card ~ ., data = data_train,
+    method = "rf",
+    metric = "Accuracy",
+    tuneGrid = tunegrid,
+    trControl = control_oob,
+    ntree = nt
+  )
+  
+  rf_oob$results$ntree <- nt
+  rf_oob$results$type  <- "OOB"
+  
+  results_oob[[paste0("ntree_", nt)]] <- rf_oob$results
+}
 
-# error rate plot (detailed)
-matplot(1:nrow(rf_default_5000$err.rate), rf_default_5000$err.rate, 
-        type = "l", lty = 1, lwd = 2, col = c("blue", "red", "darkgreen"),
-        log = "x",
-        xlab = "Number of trees (log scale)", 
-        ylab = "Error rate",
-        main = "Random Forest OOB Error by Class")
+results_oob <- dplyr::bind_rows(results_oob)
 
-legend("topright", legend = colnames(rf_default_5000$err.rate),
-       col = c("blue", "red", "darkgreen"), lty = 1, lwd = 2)
+ggplot(results_oob, aes(x = mtry, y = Accuracy, color = factor(ntree))) +
+  geom_line() + geom_point() +
+  scale_x_continuous(breaks = seq(min(results_oob$mtry), max(results_oob$mtry), 1)) +
+  labs(title = "Random Forest (OOB): Accuracy by mtry × ntree",
+       x = "mtry", y = "Accuracy", color = "ntree") +
+  theme_minimal(base_size = 14)
 
 
+################################################################################
+# Optimization of mtry and trees with 10-fold CV (with ROC)
+################################################################################
+set.seed(67)
+control_cv <- trainControl(method="cv", number=10, search="grid", classProbs = TRUE, summaryFunction = twoClassSummary)
+
+results_cv <- list()
+
+for (nt in ntree_values) {
+  cat("==== CV: ntree =", nt, "====\n")
+  
+  rf_cv <- train(
+    has_debit_card ~ ., data = data_train,
+    method = "rf",
+    metric = "ROC",
+    tuneGrid = tunegrid,
+    trControl = control_cv,
+    ntree = nt
+  )
+  
+  rf_cv$results$ntree <- nt
+  rf_cv$results$type  <- "CV_10fold"
+  
+  results_cv[[paste0("ntree_", nt)]] <- rf_cv$results
+}
+
+results_cv <- dplyr::bind_rows(results_cv)
+
+ggplot(results_cv, aes(x = mtry, y = ROC, color = factor(ntree))) +
+  geom_line() + geom_point() +
+  scale_x_continuous(breaks = seq(min(results_oob$mtry), max(results_cv$mtry), 1)) +
+  labs(title = "Random Forest (10-fold CV): ROC AUC by mtry × ntree",
+       x = "mtry", y = "AUC (ROC)", color = "ntree") +
+  theme_minimal(base_size = 14)
+
+
+################################################################################
+# Optimization of mtry and trees with LOOCV (several hours with parallelization) (with ROC)
+################################################################################
+set.seed(67)
+control_loocv <- trainControl(method="LOOCV", search="grid", classProbs = TRUE, summaryFunction = twoClassSummary)
+
+results_loocv <- list()
+
+for (nt in ntree_values) {
+  cat("==== LOOCV: ntree =", nt, "====\n")
+  
+  rf_loocv <- train(
+    has_debit_card ~ ., data = data_train,
+    method = "rf",
+    metric = "ROC",
+    tuneGrid = tunegrid,
+    trControl = control_loocv,
+    ntree = nt
+  )
+  
+  rf_loocv$results$ntree <- nt
+  rf_loocv$results$type  <- "LOOCV"
+  
+  results_loocv[[paste0("ntree_", nt)]] <- rf_loocv$results
+}
+
+results_loocv <- dplyr::bind_rows(results_loocv)
+
+
+ggplot(results_loocv, aes(x = mtry, y = ROC, color = factor(ntree))) +
+  geom_line() + geom_point() +
+  scale_x_continuous(breaks = seq(min(results_loocv$mtry), max(results_cv$mtry), 1)) +
+  labs(title = "Random Forest (LOOCV): AUC ROC by mtry × ntree",
+       x = "mtry", y = "AUC (ROC) ", color = "ntree") +
+  theme_minimal(base_size = 14)
+
+################################################################################
+# Model Evaluation on test data: Default vs Tuned
+################################################################################
+
+### Default RF (500 trees, mtry=3)
+set.seed(67)
+rf_default <- randomForest(has_debit_card ~ ., data = data_train,
+                           importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE, ntree = 500)
+
+cat("\n--- Default RF (500 trees, mtry=3) ---\n")
+print(rf_default)   # OOB error
+
+# Predictions (class + probability)
+rf_pred_class_default <- predict(rf_default, newdata = data_test, type = "response")
+rf_pred_prob_default  <- predict(rf_default, newdata = data_test, type = "prob")[,"Yes"]
+
+# Confusion matrix with detailed stats
+cm_default <- confusionMatrix(rf_pred_class_default, data_test$has_debit_card, positive="Yes")
+print(cm_default)
+
+# Extra metrics
+roc_obj_default <- roc(response = data_test$has_debit_card, predictor = rf_pred_prob_default,
+                       levels = c("No","Yes"), direction = "<")
+auc_default <- auc(roc_obj_default)
+cat("AUC (ROC) Default RF:", auc_default, "\n")
+
+
+### Tuned RF (Optimal: 750 trees, mtry=2)
+set.seed(67)
+rf_optimal <- randomForest(has_debit_card ~ ., data = data_train,
+                           importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
+                           ntree = 750, mtry = 2)
+
+cat("\n--- Tuned RF (750 trees, mtry=2) ---\n")
+print(rf_optimal)   # OOB error
+
+# Predictions (class + probability)
+rf_pred_class_opt <- predict(rf_optimal, newdata = data_test, type = "response")
+rf_pred_prob_opt  <- predict(rf_optimal, newdata = data_test, type = "prob")[,"Yes"]
+
+# Confusion matrix with detailed stats
+cm_opt <- confusionMatrix(rf_pred_class_opt, data_test$has_debit_card, positive="Yes")
+print(cm_opt)
+
+# Extra metrics
+roc_obj_opt <- roc(response = data_test$has_debit_card, predictor = rf_pred_prob_opt,
+                   levels = c("No","Yes"), direction = "<")
+auc_opt <- auc(roc_obj_opt)
+cat("AUC (ROC) Tuned RF:", auc_opt, "\n")
+
+# end the higher perfomance setting (if you started it)
+#stopCluster(cl)
+#registerDoSEQ()
