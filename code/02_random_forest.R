@@ -343,12 +343,12 @@ per_imp <- as.data.frame(per_imp) %>%
 ggplot(per_imp, aes(x = permutation_importance, y = reorder(Variable, permutation_importance))) +
   geom_col(fill = "plum4") +
   labs(
-    title = "Permutation importance (Optimal Model)",
+    title = "Permutation importance (Optimal RF)",
     subtitle = "measuerd as % Increase in MSE",
     x = "Predictor",
     y = "Permutation Importance"
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal()
 
 # For default Random Forest
 per_imp_default <- importance(rf_default, type = 1, scale = TRUE)
@@ -361,12 +361,12 @@ per_imp_default <- as.data.frame(per_imp_default) %>%
 ggplot(per_imp_default, aes(x = permutation_importance, y = reorder(Variable, permutation_importance))) +
   geom_col(fill = "plum") +
   labs(
-    title = "Permutation importance (Optimal Model)",
+    title = "Permutation importance (Default RF)",
     subtitle = "measuerd as % Increase in MSE",
     x = "Predictor",
     y = "Permutation Importance"
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal()
 
 
 
