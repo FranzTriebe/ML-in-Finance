@@ -10,6 +10,7 @@ library(smotefamily)
 library(pROC)
 library(MLmetrics)
 library(tidyverse)
+library(reshape2)
 
 ################################################################################
 # Data Loading & Preparation
@@ -324,6 +325,57 @@ cat("AUC (ROC) Tuned RF:", auc_opt, "\n")
 # end the higher perfomance setting (if you started it)
 #stopCluster(cl)
 #registerDoSEQ()
+
+
+################################################################################
+# Model Comparison Summary (with F1)
+################################################################################
+
+# Extract metrics for both models
+extract_metrics <- function(cm, auc_val, model_name) {
+  precision <- cm$byClass["Pos Pred Value"]
+  recall    <- cm$byClass["Sensitivity"]
+  f1        <- ifelse((precision + recall) == 0, 0, 2 * (precision * recall) / (precision + recall))
+  
+  data.frame(
+    Model = model_name,
+    Accuracy = cm$overall["Accuracy"],
+    Kappa = cm$overall["Kappa"],
+    Precision = precision,
+    Recall = recall,
+    F1 = f1,
+    Specificity = cm$byClass["Specificity"],
+    Balanced_Accuracy = cm$byClass["Balanced Accuracy"],
+    AUC = auc_val
+  )
+}
+
+metrics_default <- extract_metrics(cm_default, auc_default, "Default RF (500 trees, mtry=3)")
+metrics_optimal <- extract_metrics(cm_opt, auc_opt, "Tuned RF (750 trees, mtry=1)")
+
+comparison_table <- rbind(metrics_default, metrics_optimal) %>%
+  mutate(across(where(is.numeric), round, 4))
+
+cat("\n==================== MODEL COMPARISON (Extended) ====================\n")
+print(comparison_table)
+cat("=====================================================================\n")
+
+# Visualization 
+library(reshape2)
+comparison_long <- melt(comparison_table, id.vars = "Model")
+
+ggplot(comparison_long, aes(x = variable, y = value, fill = Model)) +
+  geom_bar(stat = "identity", position = position_dodge(), width = 0.7) +
+  labs(
+    title = "Random Forest Comparison: Default vs Tuned",
+    subtitle = "Including F1, Precision, Recall & AUC",
+    x = "Metric",
+    y = "Value",
+    fill = "Model"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
 ################################################################################
 # Calculating predictive importance of predictors 
