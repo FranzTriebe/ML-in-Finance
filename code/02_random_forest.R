@@ -249,12 +249,12 @@ cat("\n--- Default RF (500 trees, mtry=3) ---\n")
 print(rf_default)   # OOB error
 
 # Visualization confusion matrix
-cm_default <- as.data.frame(rf_default$confusion) %>%
+cm_d <- as.data.frame(rf_default$confusion) %>%
   select(-class.error) %>%
   rownames_to_column(var = "Actual") %>%
   pivot_longer(cols = -Actual, names_to = "Predicted", values_to = "Freq")
 
-ggplot(cm_default, aes(x = Predicted, y = Actual, fill = Freq)) +
+ggplot(cm_, aes(x = Predicted, y = Actual, fill = Freq)) +
   geom_tile(color = "white") +
   geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
   scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
