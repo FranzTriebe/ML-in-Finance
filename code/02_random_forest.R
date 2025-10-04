@@ -1,6 +1,7 @@
 ################################################################################
 # Libraries
 ################################################################################
+
 library(randomForest)
 library(caret)
 library(doParallel)
@@ -8,7 +9,7 @@ library(ggplot2)
 library(smotefamily)
 library(pROC)
 library(MLmetrics)
-
+library(tidyverse)
 
 ################################################################################
 # Data Loading & Preparation
@@ -19,7 +20,7 @@ library(MLmetrics)
 #registerDoParallel(cl)
 
 # Load raw data
-data <- read.csv("~/Desktop/ML Finance/ML-in-Finance/data/processed/df_final.csv")
+data <- read.csv("~/Documents/GitHub/ML-in-Finance/data/processed/df_final.csv")
 
 # Inspect structure
 summary(data)
@@ -261,7 +262,6 @@ roc_obj_default <- roc(response = data_test$has_debit_card, predictor = rf_pred_
 auc_default <- auc(roc_obj_default)
 cat("AUC (ROC) Default RF:", auc_default, "\n")
 
-
 ### Tuned RF (Optimal: 750 trees, mtry=2)
 set.seed(67)
 rf_optimal <- randomForest(has_debit_card ~ ., data = data_train,
@@ -288,3 +288,51 @@ cat("AUC (ROC) Tuned RF:", auc_opt, "\n")
 # end the higher perfomance setting (if you started it)
 #stopCluster(cl)
 #registerDoSEQ()
+
+################################################################################
+# Calculating predictive importance of predictors 
+################################################################################
+
+## Permutation importance
+
+# For optimal Random Forest
+set.seed(67)
+per_imp <- importance(rf_optimal, type = 1, scale = TRUE)
+
+per_imp <- as.data.frame(per_imp) %>%
+  rownames_to_column(var ="Variable") %>%
+  rename(permutation_importance = MeanDecreaseAccuracy) %>%
+  arrange(desc(permutation_importance))
+  
+ggplot(per_imp, aes(x = permutation_importance, y = reorder(Variable, permutation_importance))) +
+  geom_col(fill = "plum4") +
+  labs(
+    title = "Permutation importance (Optimal Model)",
+    subtitle = "measuerd as % Increase in MSE",
+    x = "Predictor",
+    y = "Permutation Importance"
+  ) +
+  theme_minimal(base_size = 14)
+
+# For default Random Forest
+per_imp_default <- importance(rf_default, type = 1, scale = TRUE)
+
+per_imp_default <- as.data.frame(per_imp_default) %>%
+  rownames_to_column(var ="Variable") %>%
+  rename(permutation_importance = MeanDecreaseAccuracy) %>%
+  arrange(desc(permutation_importance))
+
+ggplot(per_imp_default, aes(x = permutation_importance, y = reorder(Variable, permutation_importance))) +
+  geom_col(fill = "plum") +
+  labs(
+    title = "Permutation importance (Optimal Model)",
+    subtitle = "measuerd as % Increase in MSE",
+    x = "Predictor",
+    y = "Permutation Importance"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+
+
+
