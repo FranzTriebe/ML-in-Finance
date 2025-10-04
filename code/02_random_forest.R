@@ -248,6 +248,24 @@ rf_default <- randomForest(has_debit_card ~ ., data = data_train,
 cat("\n--- Default RF (500 trees, mtry=3) ---\n")
 print(rf_default)   # OOB error
 
+# Visualization confusion matrix
+cm_default <- as.data.frame(rf_default$confusion) %>%
+  select(-class.error) %>%
+  rownames_to_column(var = "Actual") %>%
+  pivot_longer(cols = -Actual, names_to = "Predicted", values_to = "Freq")
+
+ggplot(cm_default, aes(x = Predicted, y = Actual, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
+  scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
+  coord_equal() +
+  labs(
+    title = "Confusion Matrix - Default RF",
+    x = "Predicted",
+    y = "Actual"
+  ) +
+  theme_minimal(base_size = 14)
+
 # Predictions (class + probability)
 rf_pred_class_default <- predict(rf_default, newdata = data_test, type = "response")
 rf_pred_prob_default  <- predict(rf_default, newdata = data_test, type = "prob")[,"Yes"]
@@ -270,6 +288,24 @@ rf_optimal <- randomForest(has_debit_card ~ ., data = data_train,
 
 cat("\n--- Tuned RF (750 trees, mtry=2) ---\n")
 print(rf_optimal)   # OOB error
+
+# Visualization confusion matrix
+cm_optimal <- as.data.frame(rf_optimal$confusion) %>%
+  select(-class.error) %>%
+  rownames_to_column(var = "Actual") %>%
+  pivot_longer(cols = -Actual, names_to = "Predicted", values_to = "Freq")
+
+ggplot(cm_optimal, aes(x = Predicted, y = Actual, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
+  scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
+  coord_equal() +
+  labs(
+    title = "Confusion Matrix - Optimal RF",
+    x = "Predicted",
+    y = "Actual"
+  ) +
+  theme_minimal(base_size = 14)
 
 # Predictions (class + probability)
 rf_pred_class_opt <- predict(rf_optimal, newdata = data_test, type = "response")
