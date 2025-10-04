@@ -337,37 +337,173 @@ per_imp <- importance(rf_optimal, type = 1, scale = TRUE)
 
 per_imp <- as.data.frame(per_imp) %>%
   rownames_to_column(var ="Variable") %>%
-  rename(permutation_importance = MeanDecreaseAccuracy) %>%
-  arrange(desc(permutation_importance))
+  arrange(desc(MeanDecreaseAccuracy))
   
-ggplot(per_imp, aes(x = permutation_importance, y = reorder(Variable, permutation_importance))) +
+ggplot(per_imp, aes(x = MeanDecreaseAccuracy, y = reorder(Variable, MeanDecreaseAccuracy))) +
   geom_col(fill = "plum4") +
   labs(
-    title = "Permutation importance (Optimal RF)",
-    subtitle = "measuerd as % Increase in MSE",
-    x = "Predictor",
-    y = "Permutation Importance"
+    title = "Permutation Importance (Optimal RF)",
+    subtitle = "Mean decrease in accuracy, scaled by se",
+    x = "Permutation Importance",
+    y = "Variable"
   ) +
   theme_minimal()
 
-# For default Random Forest
+# For default Random Forest (to check robustness)
 per_imp_default <- importance(rf_default, type = 1, scale = TRUE)
 
 per_imp_default <- as.data.frame(per_imp_default) %>%
   rownames_to_column(var ="Variable") %>%
-  rename(permutation_importance = MeanDecreaseAccuracy) %>%
-  arrange(desc(permutation_importance))
+  arrange(desc(MeanDecreaseAccuracy))
 
-ggplot(per_imp_default, aes(x = permutation_importance, y = reorder(Variable, permutation_importance))) +
-  geom_col(fill = "plum") +
+ggplot(per_imp_default, aes(x = MeanDecreaseAccuracy, y = reorder(Variable, MeanDecreaseAccuracy))) +
+  geom_col(fill = "plum4") +
   labs(
-    title = "Permutation importance (Default RF)",
-    subtitle = "measuerd as % Increase in MSE",
-    x = "Predictor",
-    y = "Permutation Importance"
+    title = "Permutation Importance (Default RF)",
+    subtitle = "Mean decrease in accuracy, scaled by se",
+    x = "Permutation Importance",
+    y = "Variable"
   ) +
   theme_minimal()
 
+## Permutation importance
+
+# For optimal Random Forest
+set.seed(67)
+per_imp <- importance(rf_optimal, type = 1, scale = TRUE)
+
+per_imp <- as.data.frame(per_imp) %>%
+  rownames_to_column(var ="Variable") %>%
+  arrange(desc(MeanDecreaseAccuracy))
+
+ggplot(per_imp, aes(x = MeanDecreaseAccuracy, y = reorder(Variable, MeanDecreaseAccuracy))) +
+  geom_col(fill = "plum4") +
+  labs(
+    title = "Permutation Importance (Optimal RF)",
+    subtitle = "Mean decrease in accuracy, scaled by se",
+    x = "Permutation Importance",
+    y = "Variable"
+  ) +
+  theme_minimal()
+
+# For default Random Forest (to check robustness)
+per_imp_default <- importance(rf_default, type = 1, scale = TRUE)
+
+per_imp_default <- as.data.frame(per_imp_default) %>%
+  rownames_to_column(var ="Variable") %>%
+  arrange(desc(MeanDecreaseAccuracy))
+
+ggplot(per_imp_default, aes(x = MeanDecreaseAccuracy, y = reorder(Variable, MeanDecreaseAccuracy))) +
+  geom_col(fill = "plum4") +
+  labs(
+    title = "Permutation Importance (Default RF)",
+    subtitle = "Mean decrease in accuracy, scaled by se",
+    x = "Permutation Importance",
+    y = "Variable"
+  ) +
+  theme_minimal()
+
+## Impurity-based (Gini) importance
+
+#For optimal RF
+imp <- importance(rf_optimal, type = 2, scale = TRUE)
+
+imp <- as.data.frame(imp) %>%
+  rownames_to_column(var = "Variable") %>%
+  arrange(desc(MeanDecreaseGini)) 
+
+ggplot(imp, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecreaseGini))) +
+  geom_col(fill = "plum") +
+  labs(
+    title = "Impurity importance (Optimal RF)",
+    subtitle = "Mean decrease in node impurity (Gini)",
+    x = "Impurity Importance",
+    y = "Variable"
+  ) +
+  theme_minimal()
+
+#For default RF (to check robustness)
+imp_default <- importance(rf_default, type = 2, scale = TRUE)
+
+imp_default <- as.data.frame(imp_default) %>%
+  rownames_to_column(var = "Variable") %>%
+  arrange(desc(MeanDecreaseGini)) 
+
+ggplot(imp_default, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecreaseGini))) +
+  geom_col(fill = "plum") +
+  labs(
+    title = "Impurity importance (Default RF)",
+    subtitle = "Mean decrease in node impurity (Gini)",
+    x = "Impurity Importance",
+    y = "Variable"
+  ) +
+  theme_minimal()
+
+## Impurity-based (Gini) importance
+
+#For optimal RF
+imp <- importance(rf_optimal, type = 2, scale = TRUE)
+
+imp <- as.data.frame(imp) %>%
+  rownames_to_column(var = "Variable") %>%
+  arrange(desc(MeanDecreaseGini)) 
+
+ggplot(imp, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecreaseGini))) +
+  geom_col(fill = "plum") +
+  labs(
+    title = "Impurity Importance (Optimal RF)",
+    subtitle = "Mean decrease in node impurity (Gini)",
+    x = "Impurity Importance",
+    y = "Variable"
+  ) +
+  theme_minimal()
+
+#For default RF (to check robustness)
+imp_default <- importance(rf_default, type = 2, scale = TRUE)
+
+imp_default <- as.data.frame(imp_default) %>%
+  rownames_to_column(var = "Variable") %>%
+  arrange(desc(MeanDecreaseGini)) 
+
+ggplot(imp_default, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecreaseGini))) +
+  geom_col(fill = "plum") +
+  labs(
+    title = "Impurity Importance (Default RF)",
+    subtitle = "Mean decrease in node impurity (Gini)",
+    x = "Impurity Importance",
+    y = "Variable"
+  ) +
+  theme_minimal()
+
+#RF without rec_agri_payment and rec_gov_pension
+set.seed(67)
+data_train_select <- data_train %>%
+  select(- rec_agri_payment, - rec_gov_pension)
+
+rf_optimal_select <- randomForest(has_debit_card ~ ., data = data_train_select,
+                           importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
+                           ntree = 750, mtry = 2)
+
+cat("\n--- Tuned RF (750 trees, mtry=2) ---\n")
+print(rf_optimal_select)   # OOB error
+
+# Visualization confusion matrix
+cm_optimal_select <- as.data.frame(rf_optimal_select$confusion) %>%
+  select(-class.error) %>%
+  rownames_to_column(var = "Actual") %>%
+  pivot_longer(cols = -Actual, names_to = "Predicted", values_to = "Freq")
+
+ggplot(cm_optimal_select, aes(x = Predicted, y = Actual, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
+  scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
+  coord_equal() +
+  labs(
+    title = "Confusion Matrix - selected data",
+    x = "Predicted",
+    y = "Actual"
+  ) +
+  theme_minimal(base_size = 14)
 
 
 
