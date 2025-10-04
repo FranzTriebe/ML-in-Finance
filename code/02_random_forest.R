@@ -10,6 +10,7 @@ library(smotefamily)
 library(pROC)
 library(MLmetrics)
 library(tidyverse)
+library(gt)
 
 ################################################################################
 # Data Loading & Preparation
@@ -68,6 +69,18 @@ cat("training distribution:\n")
 print(table(data_train$has_debit_card))
 cat("test distribution:\n")
 print(table(data_test$has_debit_card))
+
+#Visualization test distribution
+test_dist <- data_test %>%
+  count(has_debit_card, name = "Count") %>%
+  mutate(Percent = Count/sum(Count)) %>%
+  rename(Class = has_debit_card) %>%
+  gt() %>%
+  fmt_percent(columns = "Percent", decimals = 1) %>%
+  cols_label() %>%
+  tab_header(title = "Test Set Distribution")
+
+test_dist
 
 ################################################################################
 # Tree stabilization analysis OOB
