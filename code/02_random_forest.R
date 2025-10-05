@@ -12,6 +12,7 @@ library(MLmetrics)
 library(tidyverse)
 library(gt)
 library(reshape2)
+library(RColorBrewer)
 
 ################################################################################
 # Data Loading & Preparation
@@ -170,12 +171,14 @@ for (nt in ntree_values) {
 
 results_oob <- dplyr::bind_rows(results_oob)
 
+cols <- brewer.pal(6, "BuPu")[2:6]
 ggplot(results_oob, aes(x = mtry, y = Accuracy, color = factor(ntree))) +
   geom_line() + geom_point() +
   scale_x_continuous(breaks = seq(min(results_oob$mtry), max(results_oob$mtry), 1)) +
+  scale_color_manual(values = cols) +
   labs(title = "Random Forest (OOB): Accuracy by mtry × ntree",
        x = "mtry", y = "Accuracy", color = "ntree") +
-  theme_minimal(base_size = 14)
+  theme_minimal(base_size = 14) 
 
 
 ################################################################################
@@ -209,6 +212,7 @@ results_cv <- dplyr::bind_rows(results_cv)
 ggplot(results_cv, aes(x = mtry, y = ROC, color = factor(ntree))) +
   geom_line() + geom_point() +
   scale_x_continuous(breaks = seq(min(results_oob$mtry), max(results_cv$mtry), 1)) +
+  scale_color_manual(values = cols) +
   labs(title = "Random Forest (10-fold CV): ROC AUC by mtry × ntree",
        x = "mtry", y = "AUC (ROC)", color = "ntree") +
   theme_minimal(base_size = 14)
