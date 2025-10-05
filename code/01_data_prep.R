@@ -6,6 +6,7 @@ library(tidyr)
 library(tidyverse)
 library(dplyr)
 library(skimr)
+library(ggcorrplot)
 
 #import dataset
 df <- read_csv("~/OneDrive - Universität St.Gallen/Semester 5/Machine Learning/Project/micro_ind.csv")
@@ -140,16 +141,16 @@ variable_summary(df_final, has_debit_card)    #35 NAs (shown as 3s and 4s)
 
 #clean binary data and deal with missing values
 df_final <- df_final %>%
-  mutate(female = ifelse(female == 2, 0, female)) %>%                                #set binary 0 or 1
+  mutate(female = ifelse(female == 2, 0, female)) %>%.                               #set binary 0 or 1
   mutate(educ = ifelse(educ > 3, NA, educ)) %>%                                      #set 4s and 5s to NA; set binary to 0 or 1
   mutate(urban = ifelse(urban == 2, 1, 0)) %>%                                       #set binary 0 or 1
-  mutate(employed = ifelse(employed == 2, 0, employed)) %>%                          #set binary 0 or 1
+  mutate(employed = ifelse(employed == 2, 0, employed)) %>%.                         #set binary 0 or 1
   mutate(rec_gov_transfer = ifelse(rec_gov_transfer > 2, NA, rec_gov_transfer)) %>%  #set 3s and 4s to NA
   mutate(rec_gov_transfer = ifelse(rec_gov_transfer == 2, 0, rec_gov_transfer)) %>%  #set binary to 0 or 1
   mutate(rec_gov_pension = ifelse(rec_gov_pension > 2, NA, rec_gov_pension)) %>%     #set 3s and 4s to NA
   mutate(rec_gov_pension = ifelse(rec_gov_pension == 2, 0, rec_gov_pension)) %>%     #set binary to 0 or 1
-  mutate(rec_agri_payment = ifelse(rec_agri_payment > 2, NA, rec_agri_payment)) %>%  #set 3s and 4s to NA
-  mutate(rec_agri_payment = ifelse(rec_agri_payment == 2, 0, rec_agri_payment)) %>%  #set binary to 0 or 1
+  mutate(rec_agri_payment = ifelse(rec_agri_payment > 2, NA, rec_agri_payment)) %>%. #set 3s and 4s to NA
+  mutate(rec_agri_payment = ifelse(rec_agri_payment == 2, 0, rec_agri_payment)) %>%. #set binary to 0 or 1
   mutate(paid_ut_bill = ifelse(paid_ut_bill > 2, NA, paid_ut_bill)) %>%              #set 3s and 4s to NA
   mutate(paid_ut_bill = ifelse(paid_ut_bill == 2, 0, paid_ut_bill)) %>%              #set binary to 0 or 1
   mutate(internetaccess = ifelse(internetaccess > 2, NA, internetaccess)) %>%        #set 3s to NA
@@ -168,29 +169,6 @@ df_final <- df_final %>%
 df_final <- df_final %>%
   filter(!is.na(has_debit_card))
 
-# Convert binary integers to factors
-df_final$female          <- factor(df_final$female, levels = c(0,1), labels = c("male","female"))
-df_final$urban           <- factor(df_final$urban, levels = c(0,1), labels = c("rural","urban"))
-df_final$employed        <- factor(df_final$employed, levels = c(0,1), labels = c("unemployed","employed"))
-df_final$rec_gov_transfer<- factor(df_final$rec_gov_transfer, levels = c(0,1), labels = c("No","Yes"))
-df_final$rec_gov_pension <- factor(df_final$rec_gov_pension, levels = c(0,1), labels = c("No","Yes"))
-df_final$rec_agri_payment<- factor(df_final$rec_agri_payment, levels = c(0,1), labels = c("No","Yes"))
-df_final$paid_ut_bill    <- factor(df_final$paid_ut_bill, levels = c(0,1), labels = c("No","Yes"))
-df_final$internetaccess  <- factor(df_final$internetaccess, levels = c(0,1), labels = c("No","Yes"))
-df_final$mobileowner     <- factor(df_final$mobileowner, levels = c(0,1), labels = c("No","Yes"))
-df_final$has_debit_card  <- factor(df_final$has_debit_card, levels = c(0,1), labels = c("No","Yes"))
-
-# Convert ordinal variables
-df_final$educ <- factor(df_final$educ, 
-                    levels = c(1,2,3), 
-                    labels = c("primary_or_less","secondary","tertiary_or_more"), 
-                    ordered = TRUE)
-
-df_final$income_q <- factor(df_final$income_q, 
-                        level = c(1,2,3,4,5), 
-                        labels = c("poorest_20","second_20","middle_20","fourth_20","richest_20"), 
-                        ordered = TRUE)
-
 ########################summary statistics################################
 
 dim(df_final)                                 #number of observations and variables
@@ -202,41 +180,75 @@ mean(df_final$income_q, na.rm = TRUE)         #mean of income quintile
 min(df_final$income_q, na.rm = TRUE)          #minimum of income quintile
 max(df_final$income_q, na.rm = TRUE)          #maximum of income quintile
 
-######################exploratory data analysis (EDA)##########################
+######################proportion barplots#################################
 
-#load libraries
-library(ggcorrplot)
+#convert age and income to binary factor groups
+df_barplot <- df_final %>%
+  mutate(
+    age_group = factor(ifelse(age < 25, "under_25", "25_and_above"),
+                       levels = c("under_25", "25_and_above")),
+    income_group = factor(ifelse(income_q < 3, "under_3", "3_and_above"),
+                          levels = c("under_3", "3_and_above"))
+  )
 
-#prepare variable lists
+#list of other binary columns to convert
+binary_cols <- c("female", "urban", "employed", 
+                 "rec_gov_transfer", "rec_gov_pension", "rec_agri_payment",
+                 "paid_ut_bill", "internetaccess", "mobileowner")
+
+#convert binary numeric columns to factors with labels
+df_barplot <- df_barplot %>%
+  mutate(across(all_of(binary_cols),
+                ~ factor(.x, levels = c(0, 1), labels = c("No", "Yes"))))
+
+#also convert has_debit_card to factor for the x-axis
+df_barplot <- df_barplot %>%
+  mutate(has_debit_card = factor(has_debit_card, levels = c(0, 1), labels = c("No", "Yes")))
+
+#define the variables to plot
+vars <- c(binary_cols, "age_group", "income_group")
+
+#loop to create and print each percent-stacked bar plot
+plots <- map(vars, function(v) {
+  ggplot(df_barplot, aes(x = has_debit_card, fill = .data[[v]])) +
+    geom_bar(position = "fill") +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = v, x = "has_debit_card", y = "percentage", fill = v) +
+    theme_minimal()
+})
+
+#print each plot
+walk(plots, print)
+
+#######################correlation matrix ###########################
+
+#compute and order correlation matrix
+corr_mat <- cor(df_final, use = "pairwise.complete.obs")
+ord <- hclust(as.dist(1 - abs(corr_mat)))$order
+vars <- rownames(corr_mat)[ord]
+corr_ord <- corr_mat[vars, vars]
+
+#long form and plot
+corr_ord %>%
+  as.data.frame() %>%
+  rownames_to_column("row") %>%
+  pivot_longer(-row, names_to = "col", values_to = "value") %>%
+  mutate(row = factor(row, levels = vars),
+         col = factor(col, levels = vars)) %>%
+  filter(as.integer(row) >= as.integer(col)) %>%
+  ggplot(aes(x = col, y = row, fill = value)) +
+  geom_tile(color = "grey80") +
+  geom_text(aes(label = sprintf("%.2f", value)), size = 3) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", limits = c(-1, 1)) +
+  coord_equal() +
+  labs(title = "Correlation matrix", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#barplot of absolute correlations
 target_col <- "has_debit_card"
 predictors <- setdiff(names(df_final), target_col)
 
-#boxplots
-df_final %>%
-  pivot_longer(cols = all_of(predictors),
-               names_to = "variable",
-               values_to = "value") %>%
-  ggplot(aes(x = factor(!!sym(target_col)), y = value)) +
-  geom_boxplot(outlier.size = 0.8, outlier.alpha = 0.4) +
-  facet_wrap(~ variable, scales = "free", ncol = 3) +
-  labs(
-    title = "distribution by has_debit_card",
-    x = "has_debit_card",
-    y = "value"
-  ) +
-  theme_minimal() +
-  theme(strip.text = element_text(size = 8))
-
-#correlation matrix 
-corr_mat <- cor(df_final, use = "pairwise.complete.obs")
-ggcorrplot(corr_mat,
-           hc.order = TRUE,
-           type = "lower",
-           lab = TRUE,
-           lab_size = 3,
-           title = "Correlation matrix (all variables)")
-
-#barplot of absolute correlations
 cor_with_target <- 
   tibble(
     variable = predictors,
