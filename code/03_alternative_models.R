@@ -1,12 +1,17 @@
 ################################################################################
 # Task 3 - Alternative Models (Decision Tree & Neural Network)
 # Goal: Predict has_debit_card (Yes/No) 
-# Author: Jonah. |  Seed: 67
+# Author: Jonah-B. Lohmann
+# Random Seed: 67
+# Runtime: ca. 45 seconds (excl. package installation)
 ################################################################################
 
 ################################################################################
 # 0) SET-UP
 ################################################################################
+cat("\n===== 0) Basic Set-Up =====\n")
+
+# -------- 0.1) Load packages & set seed ----
 
 cat("\n===== 0) Setup: Packages, Seed, Data, Manage conflics =====\n")
 
@@ -15,12 +20,15 @@ options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 # Needed packages
 pkgs <- c(
-  "tidyverse",   # data wrangling & ggplot
-  "tidymodels",  # packages for modeling and machine learning
-  "caret",       # unified training/tuning
-  "pROC",        # calculate AUC/ROC
-  "rpart",       # decision tree engine used by caret
-  "nnet"         # neural networks engine used by caret
+  "tidyverse",     # data wrangling & ggplot
+  "tidymodels",    # packages for modeling and machine learning
+  "scales",        # scale functions for visualization 
+  "caret",         # unified training/tuning
+  "pROC",          # calculate AUC/ROC
+  "rpart",         # decision tree engine used by caret
+  "rpart.plot",    # visualizing decision trees by rpart
+  "nnet",          # neural networks engine used by caret
+  "NeuralNetTools" # visualizing neural networks by nnet
   )
 
 # Install needed packages only if not installed already
@@ -31,17 +39,20 @@ if (length(to_install)) install.packages(to_install, dependencies = TRUE, quiet 
 suppressPackageStartupMessages({
   library(tidyverse)
   library(tidymodels)
+  library(scales)
   library(caret)
   library(pROC)
   library(rpart)
+  library(rpart.plot)
   library(nnet)
+  library(NeuralNetTools)
 })
 
 # Set seed
 set.seed(67)
 
 
-# -------- 0.1) Load data (already preprocessed elsewhere) --------
+# -------- 0.2) Load data (already preprocessed elsewhere) --------
 cat("\n===== 0.1) Load Data =====\n")
 
 # Load pre-processed data
@@ -59,7 +70,7 @@ str(data) #no NA values
 # For ML later: Store count of predictors
 p <- ncol(train) - 1
 
-# -------- 0.2) Train / Validation / Test split (70 / 15 / 15) --------
+# -------- 0.3) Train / Validation / Test split (70 / 15 / 15) --------
 cat("\n===== 0.2) Create 70/15/15 split (stratified) =====\n")
 
 # Creates a 70% stratified split by the target of having a debit card
@@ -83,11 +94,13 @@ map(list(train=train, validation=validation, test=test),
 cat("\nNote: There is a small amount of data entries with has_debit_card = Yes
       Weaker performance in correctly identifying has_debit_card = Yes is expected\n")
 
+# Seperate combination of training & validation data for retrain before testing
+train_val <- bind_rows(train, validation)
 
-# -------- 0.3) Define consistent helper functions for metrics and plots --------
+# -------- 0.4) Define consistent helper functions for metrics and plots --------
 
 #Helper function to plot confusion matrix
-plot_cm <- function(cm, title_txt) {
+plot_cm_dt <- function(cm, title_txt) {
   cm_df <- as.data.frame(cm$table)
   colnames(cm_df) <- c("Predicted", "Actual", "Freq")
   ggplot(cm_df, aes(x = Predicted, y = Actual, fill = Freq)) +
@@ -99,9 +112,21 @@ plot_cm <- function(cm, title_txt) {
     theme_minimal(base_size = 14)
 }
 
-# TrainControl for using 5-fold CV when tuning to optimize ROC
+plot_cm_nn <- function(cm, title_txt) {
+  cm_df <- as.data.frame(cm$table)
+  colnames(cm_df) <- c("Predicted", "Actual", "Freq")
+  ggplot(cm_df, aes(x = Predicted, y = Actual, fill = Freq)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
+    scale_fill_gradient(low = "olivedrab1", high = "olivedrab4", name = "Freq") +
+    coord_equal() +
+    labs(title = title_txt, x = "Predicted", y = "Actual") +
+    theme_minimal(base_size = 14)
+}
+
+# TrainControl for using 10-fold CV when tuning to optimize ROC
 ctrl_cv <- trainControl(
-  method = "cv", number = 5,
+  method = "cv", number = 10,
   classProbs = TRUE,
   summaryFunction = twoClassSummary,
   savePredictions = "final"
@@ -112,7 +137,7 @@ ctrl_cv <- trainControl(
 ################################################################################
 cat("\n===== 1) Decision Tree (with rpart) =====\n")
 
-# ---- 1.1) Train DT with default params on TRAIN and predict on VALIDATION
+# ---- 1.1) DT DEFAULT: Train with default params; predict on VALIDATION ----
 cat("\n===== 1.1) Train default DT (cp = 0.01) and score on VALIDATION =====\n")
 
 # Train default DT (with CARET)
@@ -132,19 +157,16 @@ dt_prob_val  <- predict(dt_default,
                         newdata = validation,
                         type = "prob")[,"Yes"] 
 
-
 cat("\n===== Calculate metrics of the default DT (Validation) =====\n")
 
-# Confusion Matrix
+# DT default: Confusion Matrix
 dt_cm_val_default <- confusionMatrix(dt_pred_val, 
                                      validation$has_debit_card, 
                                      positive = "Yes")
-
-# Highlight Accuracy (from Confusion Matrix)
+# DT default: Highlight Accuracy (from Confusion Matrix)
 dt_acc_val_default <- as.numeric(dt_cm_val_default$overall
                                  ["Accuracy"])
-
-# Highlight AUC (from prediction probabilities)
+# DT default: Highlight AUC (from prediction probabilities)
 dt_auc_val_default <- as.numeric(pROC::auc(pROC::roc(response = validation$has_debit_card,
                                                      predictor = dt_prob_val,
                                                      levels = c("No","Yes"))))
@@ -156,13 +178,13 @@ cat("\n===== Extract focus metrics of the default DT (Validation) =====\n")
 cat(sprintf("Accuracy (VAL): %.4f | ROC AUC (VAL): %.4f\n", dt_acc_val_default, dt_auc_val_default))
 
 cat("\n===== Plot Confusion Matrix of the default DT (Validation) =====\n")
-# Uses Helper: Confusion Matrix predefined in Section 0.3)
-plot_cm(dt_cm_val_default, "Confusion Matrix 
+# Uses Helper: Confusion Matrix predefined in Section 0.4)
+plot_cm_dt(dt_cm_val_default, "Confusion Matrix 
 Model: Decision Tree (Default) 
 Scored on: Validation")
 
 
-# ---- 1.2) Train DT with tuned parameters on TRAIN and predict on VALIDATION ----
+# ---- 1.2) DT TUNE: CV on TRAIN optimizing ROC (with cp; pruning) ----
 cat("\n===== 1.2) Tune & train DT and score on VALIDATION  =====\n")
 
 # Train tuned DT (with CARET; pruning range cp = [0.00001;0.002])
@@ -170,7 +192,7 @@ set.seed(67)
 dt_tuned <- caret::train(
   has_debit_card ~ ., data = train,
   method = "rpart",
-  trControl = ctrl_cv, # Uses Helper: 5-fold CV predefined in Section 0.3)
+  trControl = ctrl_cv, # Uses Helper: 5-fold CV predefined in Section 0.4)
   tuneGrid = expand.grid(cp = seq(0.00001, 0.002, length.out = 10)), #Pruning range to determine best cp
   metric = "ROC" #Best pruning range is determined by maximising ROC
 )
@@ -186,19 +208,16 @@ dt_prob_val_tuned  <- predict(dt_tuned,
                         newdata = validation,
                         type = "prob")[,"Yes"] 
 
-
 cat("\n===== Calculate metrics of the tuned DT (Validation) =====\n")
 
-# Confusion Matrix
+# DT tuned: Confusion Matrix
 dt_cm_val_tuned <- confusionMatrix(dt_pred_val_tuned, 
                                      validation$has_debit_card, 
                                      positive = "Yes")
-
-# Highlight Accuracy (from Confusion Matrix)
+# DT tuned: Highlight Accuracy (from Confusion Matrix)
 dt_acc_val_tuned <- as.numeric(dt_cm_val_tuned$overall
                                ["Accuracy"])
-
-# Highlight AUC (from prediction probabilities)
+# DT tuned: Highlight AUC (from prediction probabilities)
 dt_auc_val_tuned <- as.numeric(pROC::auc(pROC::roc(response = validation$has_debit_card,
                                                    predictor = dt_prob_val_tuned,
                                                    levels = c("No","Yes"))))
@@ -210,18 +229,15 @@ cat("\n===== Extract focus metrics of the default DT (Validation) =====\n")
 cat(sprintf("Accuracy (VAL): %.4f | ROC AUC (VAL): %.4f\n", dt_acc_val_tuned, dt_auc_val_tuned))
 
 cat("\n===== Plot Confusion Matrix of the default DT (Validation) =====\n")
-# Uses Helper: Confusion Matrix predefined in Section 0.3)
-plot_cm(dt_cm_val_tuned, "Confusion Matrix 
+# Uses Helper: Confusion Matrix predefined in Section 0.4)
+plot_cm_dt(dt_cm_val_tuned, "Confusion Matrix 
 Model: Decision Tree (Tuned) 
 Scored on: Validation")
 
-# ---- 1.3) LOCK-IN: retrain on TRAIN+VALIDATION with best cp, test on TEST ----
-cat("\n===== 1.3) Retrain optimal parameters and TEST  =====\n")
+# ---- 1.3) DT LOCK-IN: Retrain tuned on TRAIN+VALIDATION, predict on TEST ----
+cat("\n===== 1.3) Retrain optimal DT parameters and TEST =====\n")
 
-# Combine training & validation set to prepare retrain before test
-train_val <- bind_rows(train, validation)
-
-# Train final DT with best hyperparameters; no CV because that was used for tuning
+# Train final DT with best hyperparameters on cobined training & validation set
 set.seed(67)
 dt_final <- caret::train(
   has_debit_card ~ ., data = train_val, #combined training + validation set 
@@ -240,13 +256,14 @@ dt_prob_test <- predict(dt_final,
 
 cat("\n===== Calculate metrics of the final DT (TEST) =====\n")
 
-# Confusion Matrix
-dt_cm_test   <- confusionMatrix(dt_pred_test, test$has_debit_card, positive = "Yes")
-
-# Highlight Accuracy (from Confusion Matrix)
-dt_acc_test  <- as.numeric(dt_cm_test$overall["Accuracy"])
-
-# Highlight AUC (from prediction probabilities)
+# DT final: Confusion Matrix
+dt_cm_test   <- confusionMatrix(dt_pred_test, 
+                                test$has_debit_card, 
+                                positive = "Yes")
+# DT final: Highlight Accuracy (from Confusion Matrix)
+dt_acc_test  <- as.numeric(dt_cm_test$overall
+                           ["Accuracy"])
+# DT final: Highlight AUC (from prediction probabilities)
 dt_auc_test  <- as.numeric(pROC::auc(pROC::roc(response = test$has_debit_card,
                                                predictor = dt_prob_test,
                                                levels = c("No","Yes"))))
@@ -258,7 +275,7 @@ cat("\n===== Extract focus metrics of the final DT (Test) =====\n")
 cat(sprintf("Accuracy (TEST): %.4f | ROC AUC (TEST): %.4f\n", dt_acc_test, dt_auc_test))
 
 cat("\n===== Plot Confusion Matrix of the final DT (Test) =====\n")
-plot_cm(dt_cm_test, "Confusion Matrix
+plot_cm_dt(dt_cm_test, "Confusion Matrix
 Model: Decision Tree (Final) 
 Scored on: Test")
 
@@ -266,219 +283,347 @@ Scored on: Test")
 metrics_dt_final <- c(Accuracy = dt_acc_test, ROC = dt_auc_test)
 
 
+# ---- 1.4) DT INTERPRETABILITY: Visualize the final decision tree ----
+
+# Variable Importance in decision tree
+vi_dt <- caret::varImp(dt_final)$importance %>%
+  tibble::rownames_to_column("Variable") %>%
+  arrange(desc(Overall)) %>%
+  slice_head(n = 12)   
+
+# Plot Variable Importance in decision tree
+cat("\n===== Plotting Variable Importance =====\n")
+ggplot(vi_dt, aes(x = reorder(Variable, Overall), y = Overall)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Decision Tree — Top Variable Importance",
+    x = "Variable",
+    y = "Importance"
+  ) +
+  theme_minimal(base_size = 14)
+
+# Plot the final tree structure - DT's USP
+cat("\n===== Plotting the final Decision Tree structure =====\n")
+rpart.plot(
+  dt_final$finalModel,
+  type = 2,                # split labels on branches; leaves on same level
+  extra = 104,             # show fitted class, prob of class, and % of observations
+  under = TRUE,            # put node numbers/extra info under the boxes
+  fallen.leaves = TRUE,    # leaves at bottom for readability
+  tweak = 1.5,             # slightly larger boxes
+  branch.lty = 3,          # dashed branches for readability
+  shadow.col = 0,          # no shadows
+  main = "Decision Tree (Final): Structure & Node Visualisation"
+)
+
 ################################################################################
 # 2) Task 3b: Neural Network (with caret & nnet)
 ################################################################################
+cat("\n===== 2) Neural Network (nnet) =====\n")
 
+# ---- 2.1) NN DEFAULT: Train with default params; predict on VALIDATION ----
+cat("\n===== 1.1) Train default NN (size=5, decay=0) and score on VALIDATION =====\n")
 
-
-# Old script
---------------------------------------------------------------------------------
-# 1.1) Create recipe for decision tree model
-
-rec_tree <- recipe(has_debit_card ~ ., data = train) %>%
-  step_zv(all_predictors())
-
-
-# 1.2) Specify the decision tree model with tunable parameters
-
-tree_spec <- decision_tree(
-  mode = "classification",
-  cost_complexity = tune(),  # tune for optimal pruning strength
-  tree_depth     = tune(),   # tune for optimal depth
-  min_n          = tune()    # tune for optimal min observations per leaf
-) %>%
-  set_engine("rpart")
-
-
-# 1.3) Create workflow that links recipie with decision tree model
-
-wf_tree <- workflow() %>%
-  add_model(tree_spec) %>%
-  add_recipe(rec_tree)
-
-
-# 1.4) Define a grid with the range of hyper parameters that will be assessed
-
-tree_grid <- grid_regular(
-  cost_complexity(range = c(-4, -1)), # pruning penalty: 10^-4 to 10^-1
-  tree_depth(range = c(2L, 20L)), # max splits from root to leaf: 2-20
-  min_n(range = c(5L, 30L)), # min. observations per leaf: 5-30
-  levels = 4 # create 4 evenly spaced values for each parameter within its range
+# Train default NN (with CARET & nnet)
+set.seed(67)
+nn_default <- caret::train(
+  has_debit_card ~ ., data = train,
+  method = "nnet", # Single-hidden-layer neural net, classification via softmax
+  trControl = trainControl(method = "none", classProbs = TRUE),
+  tuneGrid = data.frame(size = 5, decay = 0),  # simple default
+  preProcess = c("center","scale"), # z-score transformation
+  trace = FALSE,
+  MaxNWts = 5000, # default is 1000; x5 safety margin because predictors are factors
+  maxit = 200 # default is 100; doubled to give more room for conversion
 )
 
+# Predict default NN on VALIDATION
+nn_pred_val <- predict(nn_default, 
+                       newdata = validation)
+# Return probabilities behind classification prediction
+nn_prob_val <- predict(nn_default, 
+                       newdata = validation, 
+                       type = "prob")[,"Yes"]
 
-# 1.5) Grid search (fit on train, score on validation) & collect results in one table
-# Grid Search has shown to yield better results for roc_auc than cross validation
+cat("\n===== Calculate metrics of the default NN (Validation) =====\n")
 
+# NN default: Confusion Matrix
+nn_cm_val_default <- confusionMatrix(nn_pred_val, 
+                                     validation$has_debit_card, 
+                                     positive = "Yes")
+# NN default: Highlight Accuracy (from Confusion Matrix)
+nn_acc_val_default <- as.numeric(nn_cm_val_default$overall
+                                 ["Accuracy"])
+# NN default: Highlight AUC (from prediction probabilities)
+nn_auc_val_default <- as.numeric(pROC::auc(pROC::roc(response = validation$has_debit_card,
+                                                     predictor = nn_prob_val,
+                                                     levels = c("No","Yes"))))
+
+cat("\n===== Extract statistics of the default NN (Validation) =====\n")
+print(nn_cm_val_default)
+
+cat("\n===== Extract focus metrics of the default NN (Validation) =====\n")
+cat(sprintf("Accuracy (VAL): %.4f | ROC AUC (VAL): %.4f\n", nn_acc_val_default, nn_auc_val_default))
+
+cat("\n===== Plot Confusion Matrix of the default NN (Validation) =====\n")
+plot_cm_nn(nn_cm_val_default, "Confusion Matrix
+Model: Neural Net (Default)
+Scored on: Validation")
+
+# ---- 2.2) NN TUNE: CV on TRAIN optimizing ROC (with size x decay) ----
+cat("\n===== 2.2) Tune & train NN and score on VALIDATION  =====\n")
+
+# Tune size and decay with ranges (optimal range determined in manual iterations)
+# Runtime: ca. 50 seconds
 set.seed(67)
-tree_results <- map_dfr(1:nrow(tree_grid), function(i){
-  params <- tree_grid[i,]
-  #finalize_workflow() will replace tune() in model 
-  fitted <- finalize_workflow(wf_tree, params) %>% fit(train)
-  #applies the helper eval function to score the model on the validation set
-  mets   <- eval_cls(fitted, validation) %>% mutate(.config = i)
-  #combines parameter values and the evaluation metrics into one row.
-  bind_cols(params, mets)
-})
+nn_tuned <- caret::train(
+  has_debit_card ~ ., data = train,
+  method = "nnet",
+  trControl = ctrl_cv, # 10-fold CV defined in section 0.4)
+  tuneGrid = expand.grid(
+    size = 1:5, 
+    decay = 10^seq(-2, -1, length.out = 10)), # log-spaced, wider than default
+  preProcess = c("center","scale"),
+  metric = "ROC", # Tuning optimises ROC
+  trace = FALSE,
+  MaxNWts = 5000,
+  maxit = 200
+)
+
+cat("\n The hyperparameters for tuned NN, maximising ROC are: \n")
+nn_tuned$bestTune %>% print()
+
+# Predict tuned NN on VALIDATION
+nn_pred_val_tuned <- predict(nn_tuned, 
+                             newdata = validation)
+# Return probabilities behind classification prediction
+nn_prob_val_tuned <- predict(nn_tuned, 
+                             newdata = validation, 
+                             type = "prob")[,"Yes"]
+
+cat("\n===== Calculate metrics of the tuned DT (Validation) =====\n")
+
+# NN tuned: Confusion Matrix
+nn_cm_val_tuned <- confusionMatrix(nn_pred_val_tuned, 
+                                   validation$has_debit_card, 
+                                   positive = "Yes")
+# NN tuned: Highlight Accuracy (from Confusion Matrix)
+nn_acc_val_tuned <- as.numeric(nn_cm_val_tuned$overall
+                               ["Accuracy"])
+# NN tuned: Highlight AUC (from prediction probabilities)
+nn_auc_val_tuned <- as.numeric(pROC::auc(pROC::roc(response = validation$has_debit_card,
+                                                   predictor = nn_prob_val_tuned,
+                                                   levels = c("No","Yes"))))
+
+cat("\n===== Extract statistics of the tuned NN (Validation) =====\n")
+print(nn_cm_val_tuned)
+
+cat("\n===== Extract focus metrics of the tuned NN (Validation) =====\n")
+cat(sprintf("Accuracy (VAL): %.4f | ROC AUC (VAL): %.4f\n", nn_acc_val_tuned, nn_auc_val_tuned))
+
+cat("\n===== Plot Confusion Matrix of the tuned NN (Validation) =====\n")
+plot_cm_nn(nn_cm_val_tuned, "Confusion Matrix
+Model: Neural Net (Tuned)
+Scored on: Validation")
+
+# ---- 2.3) NN LOCK-IN: Retrain tuned NN on TRAIN+VALIDATION, predict on TEST ----
+cat("\n===== 2.3) Retrain optimal NN parameters and TEST =====\n")
+
+# Train final NN with best hyperparameters on combined training & validation set
+set.seed(67)
+nn_final <- train(
+  has_debit_card ~ ., data = train_val, # combination of TRAIN + VALUATION
+  method = "nnet",
+  trControl = trainControl(method = "none", classProbs = TRUE),
+  tuneGrid = nn_tuned$bestTune, # use tuned parameters
+  preProcess = c("center","scale"),
+  trace = FALSE,
+  MaxNWts = 5000,
+  maxit = 200
+)
+
+# Predict final NN on TEST
+nn_pred_test <- predict(nn_final, 
+                        newdata = test)
+# Return probabilities behind classification prediction
+nn_prob_test <- predict(nn_final, 
+                        newdata = test, 
+                        type = "prob")[,"Yes"]
+
+cat("\n===== Calculate metrics of the final NN (TEST) =====\n")
+
+# NN final: Confusion Matrix
+nn_cm_test   <- confusionMatrix(nn_pred_test, 
+                                test$has_debit_card, 
+                                positive = "Yes")
+# NN final: Highlight Accuracy (from Confusion Matrix)
+nn_acc_test  <- as.numeric(nn_cm_test$overall
+                           ["Accuracy"])
+# NN final: Highlight AUC (from prediction probabilities)
+nn_auc_test  <- as.numeric(pROC::auc(pROC::roc(response = test$has_debit_card,
+                                               predictor = nn_prob_test,
+                                               levels = c("No","Yes"))))
+
+cat("\n===== Extract statistics of the final NN (Test) =====\n")
+print(nn_cm_test)
+
+cat("\n===== Extract focus metrics of the final NN (Test) =====\n")
+cat(sprintf("Accuracy (TEST): %.4f | ROC AUC (TEST): %.4f\n", nn_acc_test, nn_auc_test))
+
+cat("\n===== Plot Confusion Matrix of the final NN (Test) =====\n")
+plot_cm_nn(nn_cm_test, "Confusion Matrix
+Model: Neural Net (Final)
+Scored on: Test")
+
+# Store final NN metrics for later comparison
+metrics_nn_final <- c(Accuracy = nn_acc_test, ROC = nn_auc_test)
 
 
-# 1.6) Choose best hyperparameters config by ROC AUC (primary metric) & train
+# ---- 2.4) NN INTERPRETABILITY: Visualize the final neural network ----
 
-# Find the best hyper parameter configuration by ROC AUC
-best_row_tree <- tree_results %>%
-  filter(.metric == "roc_auc") %>%
-  arrange(desc(.estimate)) %>%
-  slice(1)
-
-# Retrieve the best hyper parameters
-best_params_tree <- tree_grid[best_row_tree$.config, , drop = FALSE]
-
-# Build & fit the final model on "train" with best hyper parameters
-best_tree <- finalize_workflow(wf_tree, best_params_tree) %>% fit(train)
-
-
-# 1.7) Evaluate the best hyper parameters for the report
-
-# Look up the best hyper parameters
-best_params_tree 
-# === Results: cost_complexity = 10^-4, tree-depth = 8, min_n = 21 ===
-# Tuning successful because hyper parameters do not lie at the edge of grid
-# Exception: cost_complexity, however didn't yield better results at 10^-5
-
-# Look up the evaluation metrics of the best hyperparameters
-val_metrics_tree <- eval_cls(best_tree, validation) %>% mutate(model = "Decision Tree")
-val_metrics_tree 
-# === Results: roc_auc = 0.735, outperforming other metrics ===
-
-# Plot the confusion matrix on the validation set
-cm_val <- best_tree %>%
-  augment(new_data = validation) %>%
-  conf_mat(truth = has_debit_card, estimate = .pred_class)
-plot_confusion_matrix(cm_val, "Confusion Matrix — Decision Tree on Validation")
+# Plot Neural Network architecture diagram (inputs → hidden → outputs)
+cat("\n-- Plotting NN architecture (nnet) --\n")
+plotnet(
+  nn_final$finalModel,
+  alpha      = 0.6,      # lighter edges
+  circle_cex = 1.3,      # node size
+  cex_val    = 0.8,      # smaller text labels
+  pos_col    = "green3", # positive weights (green lines)
+  neg_col    = "red3",   # negative weights (red lines)
+  max_spread  = TRUE,    # spread input/output nodes vertically
+  node_labs  = TRUE,     # show node labels
+  var_labs   = TRUE      # show input labels
+)
 
 ################################################################################
-# 2) Task 3b: Neural Network: tune & eval
+# 3) Model Comparison: Decision Tree vs. Random Forest vs. Neural Network
 ################################################################################
-
-# 2.1) Create recipie for Artificial Neural Network (ANN; numeric matrix needed)
-
-rec_ann <- recipe(has_debit_card ~ ., data = train) %>%
-  step_zv(all_predictors()) %>%
-  step_dummy(all_nominal_predictors()) %>%        # one-hot
-  step_normalize(all_numeric_predictors())        # scale
-
-prep_ann <- prep(rec_ann)
-train_nn <- bake(prep_ann, new_data = train)
-val_nn   <- bake(prep_ann, new_data = validation)
-
-# Convert target to numeric 0/1 column named 'y' (neuralnet expects numeric)
-train_nn <- train_nn %>% 
-  mutate(y = as.integer(has_debit_card == "Yes")) %>% 
-  select(-has_debit_card)
-val_nn <- val_nn %>% 
-  mutate(y = as.integer(has_debit_card == "Yes")) %>% 
-  select(-has_debit_card)
-
-# Build formula: y ~ x1 + x2 + ...
-nn_formula <- as.formula(
-  paste("y ~", paste(setdiff(names(train_nn),"y"), collapse = " + ")))
+cat("\n===== 3) Model Comparison (TEST, final models) =====\n")
 
 
-# 2.2) Build tuning grid
-# 1) Proper grid (hidden as list-column)
-nn_grid <- tibble::tibble(
-  hidden    = list(c(16), c(32), c(32,16), c(64,32)),
-  act       = c("logistic","logistic","logistic","logistic"),
-  stepmax   = c(2e5, 4e5, 4e5, 6e5),
-  threshold = c(0.05, 0.03, 0.03, 0.03)
-) %>% 
-  dplyr::mutate(.config = dplyr::row_number())
+# ---- [Delete later] Placeholder for RF test metrics ----
+# Command: To ensure compatibility with this script, follow this naming convention
+# Final RF Confusion Matrix = rf_cm_test
+# Final RF Accuracy = rf_acc_test
+# Final RF Area under Curve (AUC) = rf_auc_test
 
-# Helper: fit one model and score VALIDATION
-fit_eval_nn <- function(hidden, act, stepmax, threshold) {
-  stopifnot(is.numeric(stepmax), length(stepmax) == 1, !is.na(stepmax))
-  stopifnot(is.character(act), length(act) == 1)
-  stopifnot(is.numeric(hidden), length(hidden) >= 1)
-  
-  set.seed(67)
-  nn <- neuralnet(
-    formula        = nn_formula,
-    data           = train_nn,
-    hidden         = hidden,
-    act.fct        = act,
-    linear.output  = FALSE,
-    lifesign       = "minimal",
-    stepmax        = stepmax,
-    threshold      = threshold
-  )
-  
-  val_probs <- neuralnet::compute(nn, val_nn |> dplyr::select(-y))$net.result[,1]
-  val_cls   <- factor(ifelse(val_probs > 0.5, "Yes", "No"), levels = c("No","Yes"))
-  
-  out <- tibble::tibble(
-    has_debit_card = factor(ifelse(val_nn$y == 1, "Yes", "No"), levels = c("No","Yes")),
-    .pred_class    = val_cls,
-    .pred_Yes      = val_probs
-  )
-  list(
-    model   = nn,
-    metrics = metric_set_cls(out, truth = has_debit_card, estimate = .pred_class, .pred_Yes = .pred_Yes)
-  )
+# If you RF test metrics in this environment, this block will be skipped.
+if (!exists("rf_acc_test")) {
+  rf_acc_test <- as.numeric(NA)  # replace with numeric (e.g., 0.78)
+}
+if (!exists("rf_auc_test")) {
+  rf_auc_test <- as.numeric(NA)  # replace with numeric (e.g., 0.83)
+}
+# If RF confusion matrix inexistent this will be set to NULL and secondary metrics for RF will be NA.
+if (!exists("rf_cm_test")) {
+  rf_cm_test <- NULL
 }
 
 
-# 2.3) Grid search on VALIDATION (Runtime: ca. 1 minute)
-set.seed(67)
-nn_results <- purrr::pmap_dfr(
-  nn_grid,
-  function(hidden, act, stepmax, threshold, .config) {
-    res <- fit_eval_nn(hidden, act, stepmax, threshold)
-    res$metrics %>%
-      dplyr::mutate(
-        .config    = .config,
-        hidden_str = paste(hidden, collapse = "-"),
-        act        = act,
-        stepmax    = stepmax,
-        threshold  = threshold
-      )
+# ---- 3.0) Extract secondary metrics from confusion matrices for plotting ----
+
+# helper function to extract secondary metrics from caret::confusionMatrix()
+extract_cm_metrics <- function(cm_obj) {
+  if (is.null(cm_obj)) {
+    return(tibble(
+      Accuracy = NA_real_,         # overall correctness, easy to interpret
+      Sensitivity = NA_real_,      # how well we find true positives
+      Specificity = NA_real_,      # how well we avoid false positives
+      B_Accuracy = NA_real_) # average of Sensitivity and Specificity
+    )
   }
+  tibble(
+    Accuracy         = as.numeric(cm_obj$overall["Accuracy"]),
+    Sensitivity      = as.numeric(cm_obj$byClass["Sensitivity"]),
+    Specificity      = as.numeric(cm_obj$byClass["Specificity"]),
+    B_Accuracy = as.numeric(cm_obj$byClass["Balanced Accuracy"])
+  )
+}
+
+# Extract secondary metrics from confusion matrices for benchmarking later
+dt_sec  <- extract_cm_metrics(dt_cm_test)
+nn_sec  <- extract_cm_metrics(nn_cm_test)
+rf_sec  <- extract_cm_metrics(rf_cm_test)   # NA until you provide rf_cm_test
+
+
+# ---- 3.1) Pairwise comparisons: DT vs. RF / NN vs. RF / DT vs. NN ----
+
+# DT vs. RF (primary metrics: Accuracy & AUC)
+comp_dt_rf <- tibble(
+  Metric       = c("Accuracy", "ROC"),
+  DecisionTree = c(dt_acc_test, dt_auc_test),
+  RandomForest = c(rf_acc_test, rf_auc_test)
+)
+cat("\n===== Decision Tree vs Random Forest (TEST) =====\n")
+print(comp_dt_rf)
+
+# NN vs. RF (primary metrics: Accuracy & AUC)
+comp_nn_rf <- tibble(
+  Metric     = c("Accuracy", "ROC"),
+  NeuralNet  = c(nn_acc_test, nn_auc_test),
+  RandomForest = c(rf_acc_test, rf_auc_test)
+)
+cat("\n===== Neural Net vs Random Forest (TEST) =====\n")
+print(comp_nn_rf)
+
+# DT vs. NN (primary metrics: Accuracy & AUC)
+comp_dt_nn <- tibble(
+  Metric     = c("Accuracy", "ROC"),
+  DecisionTree = c(dt_acc_test, dt_auc_test),
+  NeuralNet  = c(nn_acc_test, nn_auc_test)
+)
+cat("\n===== Decision Tree vs Neural Net (TEST) =====\n")
+print(comp_dt_nn)
+
+
+# ---- 3.2) Benchmarking: DT vs. RF vs. NN (all metrics) ----
+
+# Build tidy frame with all metrics
+all_metrics <- bind_rows(
+  dt_sec  %>% mutate(Model = "Decision Tree", ROC = dt_auc_test),
+  rf_sec  %>% mutate(Model = "Random Forest", ROC = rf_auc_test),
+  nn_sec  %>% mutate(Model = "Neural Net",    ROC = nn_auc_test)
+) %>%
+  select(Model, 
+         Accuracy, 
+         ROC, 
+         Sensitivity, 
+         Specificity, 
+         B_Accuracy) %>%
+  pivot_longer(cols = -Model, 
+               names_to = "Metric", 
+               values_to = "Value")
+
+# Convert to percentages for the chart labels if you like; we’ll keep 0–1 scale for y
+# but show % in the axis labels via scale_y_continuous(labels = scales::percent_format()).
+
+# Color scheme for barchart
+model_colors <- c(
+  "Decision Tree" = "steelblue1",
+  "Random Forest" = "plum2",
+  "Neural Net"    = "olivedrab2"
 )
 
+# Order metrics: emphasize ROC and Accuracy early
+metric_order <- c("ROC", "Accuracy", "B_Accuracy", "Sensitivity", "Specificity")
+all_metrics$Metric <- factor(all_metrics$Metric, levels = metric_order)
 
-# 2.4) Pick the best hyper parameter by accuracy
+# Plot barchart for comparison 
+# This will throw a warning, if RF is missing and it removes them from the chart
+cat("\n===== Benchmark bar chart across models (TEST) =====\n")
+ggplot(all_metrics, aes(x = Metric, y = Value, fill = Model)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.8) +
+  scale_fill_manual(values = model_colors) +
+  coord_cartesian(ylim = c(0.5, 1)) +  # just zooms; doesn’t cut data
+  labs(
+    title = "Benchmarking DT vs. RF vs. NN",
+    subtitle = "Primary: ROC & Accuracy 
+Secondary: Balanced Accuracy, Sensitivity, Specificity",
+    x = "Metrics",
+    y = "Score",
+    fill = "Model"
+  ) +
+  theme_minimal(base_size = 14)
 
-best_cfg_id <- nn_results %>%
-  dplyr::filter(.metric == "accuracy") %>%
-  dplyr::arrange(dplyr::desc(.estimate)) %>%
-  dplyr::slice(1) %>%
-  dplyr::pull(.config)
-
-best_params_nn <- nn_grid %>% dplyr::filter(.config == best_cfg_id)
-
-# 2.5) Refit the best ANN on "train" and keep validation metrics for the report
-
-best_fit_val <- fit_eval_nn(
-  hidden    = best_params_nn$hidden[[1]],
-  act       = best_params_nn$act,
-  stepmax   = best_params_nn$stepmax,
-  threshold = best_params_nn$threshold
-)
-val_metrics_ann <- best_fit_val$metrics %>% dplyr::mutate(model = "ANN (neuralnet)")
-val_metrics_ann
-
-# Define val-probs using the best fitted model from fit_eval_nn()
-best_nn <- best_fit_val$model  # extract the trained neuralnet object
-
-val_probs <- neuralnet::compute(best_nn, val_nn %>% select(-y))$net.result[, 1]
-val_cls   <- factor(ifelse(val_probs > 0.5, "Yes", "No"), levels = c("No", "Yes"))
-val_truth <- factor(ifelse(val_nn$y == 1, "Yes", "No"), levels = c("No", "Yes"))
-
-# Compute and plot confusion matrix
-cm_ann_val <- conf_mat(
-  tibble(has_debit_card = val_truth, .pred_class = val_cls),
-  truth    = has_debit_card,
-  estimate = .pred_class
-)
-
-plot_confusion_matrix(cm_ann_val, title = "Confusion Matrix - ANN on Validation")
+cat("\n===== 03_alternative_models.R is DONE =====\n")
