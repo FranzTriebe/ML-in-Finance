@@ -13,6 +13,7 @@ library(tidyverse)
 library(gt)
 library(reshape2)
 library(RColorBrewer)
+library(themis)
 
 ################################################################################
 # Data Loading & Preparation
@@ -72,17 +73,17 @@ print(table(data_train$has_debit_card))
 cat("test distribution:\n")
 print(table(data_test$has_debit_card))
 
-#Visualization test distribution
-test_dist <- data_test %>%
+#Visualization training distribution
+train_dist <- data_train %>%
   count(has_debit_card, name = "Count") %>%
   mutate(Percent = Count/sum(Count)) %>%
   rename(Class = has_debit_card) %>%
   gt() %>%
   fmt_percent(columns = "Percent", decimals = 1) %>%
   cols_label() %>%
-  tab_header(title = "Test Set Distribution")
+  tab_header(title = "Training Set Distribution")
 
-test_dist
+train_dist
 
 ################################################################################
 # Apply SMOTE 
@@ -295,24 +296,6 @@ rf_default <- randomForest(has_debit_card ~ ., data = data_train,
 cat("\n--- Default RF (500 trees, mtry=3) ---\n")
 print(rf_default)   # OOB error
 
-# Visualization confusion matrix
-cm_d <- as.data.frame(rf_default$confusion) %>%
-  select(-class.error) %>%
-  rownames_to_column(var = "Actual") %>%
-  pivot_longer(cols = -Actual, names_to = "Predicted", values_to = "Freq")
-
-ggplot(cm_d, aes(x = Predicted, y = Actual, fill = Freq)) +
-  geom_tile(color = "white") +
-  geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
-  scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
-  coord_equal() +
-  labs(
-    title = "Confusion Matrix - Default RF",
-    x = "Predicted",
-    y = "Actual"
-  ) +
-  theme_minimal(base_size = 14)
-
 # Predictions (class + probability)
 rf_pred_class_default <- predict(rf_default, newdata = data_test, type = "response")
 rf_pred_prob_default  <- predict(rf_default, newdata = data_test, type = "prob")[,"Yes"]
@@ -320,6 +303,26 @@ rf_pred_prob_default  <- predict(rf_default, newdata = data_test, type = "prob")
 # Confusion matrix with detailed stats
 cm_default <- confusionMatrix(rf_pred_class_default, data_test$has_debit_card, positive="Yes")
 print(cm_default)
+
+# Visualization confusion matrix
+cm_d <- as.data.frame(rf_default$confusion) %>%
+  select(-class.error) %>%
+  rownames_to_column(var = "Actual") %>%
+  pivot_longer(cols = -Actual, names_to = "Predicted", values_to = "Freq")
+
+cm_d <- as.data.frame(cm_default$table)
+
+ggplot(cm_d, aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
+  scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
+  coord_equal() +
+  labs(
+    title = "Confusion Matrix - Default RF",
+    x = "Prediction",
+    y = "Reference"
+  ) +
+  theme_minimal(base_size = 14)
 
 # Extra metrics
 roc_obj_default <- roc(response = data_test$has_debit_card, predictor = rf_pred_prob_default,
@@ -336,24 +339,6 @@ rf_optimal <- randomForest(has_debit_card ~ ., data = data_train,
 cat("\n--- Tuned RF (750 trees, mtry=2) ---\n")
 print(rf_optimal)   # OOB error
 
-# Visualization confusion matrix
-cm_optimal <- as.data.frame(rf_optimal$confusion) %>%
-  select(-class.error) %>%
-  rownames_to_column(var = "Actual") %>%
-  pivot_longer(cols = -Actual, names_to = "Predicted", values_to = "Freq")
-
-ggplot(cm_optimal, aes(x = Predicted, y = Actual, fill = Freq)) +
-  geom_tile(color = "white") +
-  geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
-  scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
-  coord_equal() +
-  labs(
-    title = "Confusion Matrix - Optimal RF",
-    x = "Predicted",
-    y = "Actual"
-  ) +
-  theme_minimal(base_size = 14)
-
 # Predictions (class + probability)
 rf_pred_class_opt <- predict(rf_optimal, newdata = data_test, type = "response")
 rf_pred_prob_opt  <- predict(rf_optimal, newdata = data_test, type = "prob")[,"Yes"]
@@ -361,6 +346,21 @@ rf_pred_prob_opt  <- predict(rf_optimal, newdata = data_test, type = "prob")[,"Y
 # Confusion matrix with detailed stats
 cm_opt <- confusionMatrix(rf_pred_class_opt, data_test$has_debit_card, positive="Yes")
 print(cm_opt)
+
+# Visualization confusion matrix on test data
+cm_optimal <- as.data.frame(cm_opt$table)
+  
+ggplot(cm_optimal, aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
+  scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
+  coord_equal() +
+  labs(
+    title = "Confusion Matrix - Optimal RF",
+    x = "Prediction",
+    y = "Reference"
+  ) +
+  theme_minimal(base_size = 14)
 
 # Extra metrics
 roc_obj_opt <- roc(response = data_test$has_debit_card, predictor = rf_pred_prob_opt,
