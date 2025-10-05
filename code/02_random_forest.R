@@ -318,11 +318,16 @@ ggplot(cm_d, aes(x = Prediction, y = Reference, fill = Freq)) +
   scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
   coord_equal() +
   labs(
-    title = "Confusion Matrix - Default RF",
-    x = "Prediction",
-    y = "Reference"
+    title = "Confusion Matrix - Default (Test Set)",
+    subtitle = "Evaluated after SMOTE-NC balancing",
+    x = "Predicted Class",
+    y = "Actual Class"
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
 
 # Extra metrics
 roc_obj_default <- roc(response = data_test$has_debit_card, predictor = rf_pred_prob_default,
@@ -356,12 +361,17 @@ ggplot(cm_optimal, aes(x = Prediction, y = Reference, fill = Freq)) +
   scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
   coord_equal() +
   labs(
-    title = "Confusion Matrix - Optimal RF",
-    x = "Prediction",
-    y = "Reference"
+    title = "Confusion Matrix - Tuned (Test Set)",
+    subtitle = "Evaluated after SMOTE-NC balancing",
+    x = "Predicted Class",
+    y = "Actual Class"
   ) +
-  theme_minimal(base_size = 14)
-
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+  
 # Extra metrics
 roc_obj_opt <- roc(response = data_test$has_debit_card, predictor = rf_pred_prob_opt,
                    levels = c("No","Yes"), direction = "<")
@@ -578,6 +588,9 @@ set.seed(67)
 data_train_select <- data_train %>%
   select(- rec_agri_payment, - rec_gov_pension)
 
+data_test_select <- data_test %>%
+  select(- rec_agri_payment, -rec_gov_pension)
+
 rf_optimal_select <- randomForest(has_debit_card ~ ., data = data_train_select,
                            importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
                            ntree = 750, mtry = 2)
@@ -585,23 +598,33 @@ rf_optimal_select <- randomForest(has_debit_card ~ ., data = data_train_select,
 cat("\n--- Tuned RF (750 trees, mtry=2) ---\n")
 print(rf_optimal_select)   # OOB error
 
-# Visualization confusion matrix
-cm_optimal_select <- as.data.frame(rf_optimal_select$confusion) %>%
-  select(-class.error) %>%
-  rownames_to_column(var = "Actual") %>%
-  pivot_longer(cols = -Actual, names_to = "Predicted", values_to = "Freq")
+# Predictions (class + probability)
+rf_pred_class_opt_select <- predict(rf_optimal_select, newdata = data_test_select, type = "response")
+rf_pred_prob_opt_select  <- predict(rf_optimal_select, newdata = data_test_select, type = "prob")[,"Yes"]
 
-ggplot(cm_optimal_select, aes(x = Predicted, y = Actual, fill = Freq)) +
+# Confusion matrix with detailed stats
+cm_opt_select <- confusionMatrix(rf_pred_class_opt_select, data_test_select$has_debit_card, positive="Yes")
+print(cm_opt_select)
+
+# Visualization confusion matrix on test data
+cm_optimal_select <- as.data.frame(cm_opt_select$table)
+
+ggplot(cm_optimal_select, aes(x = Prediction, y = Reference, fill = Freq)) +
   geom_tile(color = "white") +
   geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
   scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
   coord_equal() +
   labs(
-    title = "Confusion Matrix - selected data",
-    x = "Predicted",
-    y = "Actual"
+    title = "Confusion Matrix - Tuned (Selected Test Set)",
+    subtitle = "Evaluated after SMOTE-NC balancing",
+    x = "Predicted Class",
+    y = "Actual Class"
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
 
 
 
