@@ -23,7 +23,7 @@ library(RColorBrewer)
 #registerDoParallel(cl)
 
 # Load raw data
-data <- read.csv("~/Documents/GitHub/ML-in-Finance/data/processed/df_final.csv")
+data <- read.csv("data/processed/df_final.csv")
 
 # Inspect structure
 summary(data)
@@ -83,6 +83,35 @@ test_dist <- data_test %>%
   tab_header(title = "Test Set Distribution")
 
 test_dist
+
+################################################################################
+# Apply SMOTE 
+################################################################################
+
+set.seed(67)
+
+cat("\nBefore SMOTE:\n")
+print(table(data_train$has_debit_card))
+
+# Convert data to data.frame (themis works with tibbles or data.frames)
+df_train <- as.data.frame(data_train)
+
+# Run SMOTENC
+data_train_bal <- smotenc(
+  df = df_train,
+  var = "has_debit_card",  # target variable (must be factor)
+  k = 5,                   # number of neighbors
+  over_ratio = 1          # balance classes 1:0.8 because if 1:1 -> overfit
+)
+
+cat("\nAfter SMOTE (themis::smotenc):\n")
+print(table(data_train_bal$has_debit_card))
+
+# Check structure
+str(data_train_bal)
+
+# Replace training dataset
+data_train <- data_train_bal
 
 ################################################################################
 # Tree stabilization analysis OOB
@@ -272,7 +301,7 @@ cm_d <- as.data.frame(rf_default$confusion) %>%
   rownames_to_column(var = "Actual") %>%
   pivot_longer(cols = -Actual, names_to = "Predicted", values_to = "Freq")
 
-ggplot(cm_, aes(x = Predicted, y = Actual, fill = Freq)) +
+ggplot(cm_d, aes(x = Predicted, y = Actual, fill = Freq)) +
   geom_tile(color = "white") +
   geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
   scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
