@@ -305,11 +305,6 @@ cm_default <- confusionMatrix(rf_pred_class_default, data_test$has_debit_card, p
 print(cm_default)
 
 # Visualization confusion matrix
-cm_d <- as.data.frame(rf_default$confusion) %>%
-  select(-class.error) %>%
-  rownames_to_column(var = "Actual") %>%
-  pivot_longer(cols = -Actual, names_to = "Predicted", values_to = "Freq")
-
 cm_d <- as.data.frame(cm_default$table)
 
 ggplot(cm_d, aes(x = Prediction, y = Reference, fill = Freq)) +
@@ -412,6 +407,14 @@ metrics_optimal <- extract_metrics(cm_opt, auc_opt, "Tuned RF (750 trees, mtry=1
 comparison_table <- rbind(metrics_default, metrics_optimal) %>%
   mutate(across(where(is.numeric), round, 4))
 
+comparison_table_select <- comparison_table %>%
+  select(Accuracy, Balanced_Accuracy, AUC) %>%
+  rename('Bal. Acc.' = Balanced_Accuracy) %>%
+  mutate(Model = c("Default", "Tuned")) %>%
+  gt(rowname_col = "Model")
+
+comparison_table_select
+
 cat("\n==================== MODEL COMPARISON (Extended) ====================\n")
 print(comparison_table)
 cat("=====================================================================\n")
@@ -422,15 +425,18 @@ comparison_long <- melt(comparison_table, id.vars = "Model")
 
 ggplot(comparison_long, aes(x = variable, y = value, fill = Model)) +
   geom_bar(stat = "identity", position = position_dodge(), width = 0.7) +
+  scale_fill_manual(values = cols[c(2,4)]) +
   labs(
-    title = "Random Forest Comparison: Default vs Tuned",
+    title = "Random Forest Comparison: \nDefault vs Tuned",
     subtitle = "Including F1, Precision, Recall & AUC",
     x = "Metric",
     y = "Value",
     fill = "Model"
   ) +
   theme_minimal(base_size = 14) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  coord_cartesian(ylim = c(0.4, 0.85)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(face = "bold"))
 
 
 ################################################################################
@@ -455,7 +461,8 @@ ggplot(per_imp, aes(x = MeanDecreaseAccuracy, y = reorder(Variable, MeanDecrease
     x = "Permutation Importance",
     y = "Variable"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"))
 
 # For default Random Forest (to check robustness)
 per_imp_default <- importance(rf_default, type = 1, scale = TRUE)
@@ -472,44 +479,8 @@ ggplot(per_imp_default, aes(x = MeanDecreaseAccuracy, y = reorder(Variable, Mean
     x = "Permutation Importance",
     y = "Variable"
   ) +
-  theme_minimal()
-
-## Permutation importance
-
-# For optimal Random Forest
-set.seed(67)
-per_imp <- importance(rf_optimal, type = 1, scale = TRUE)
-
-per_imp <- as.data.frame(per_imp) %>%
-  rownames_to_column(var ="Variable") %>%
-  arrange(desc(MeanDecreaseAccuracy))
-
-ggplot(per_imp, aes(x = MeanDecreaseAccuracy, y = reorder(Variable, MeanDecreaseAccuracy))) +
-  geom_col(fill = "plum4") +
-  labs(
-    title = "Permutation Importance (Optimal RF)",
-    subtitle = "Mean decrease in accuracy, scaled by se",
-    x = "Permutation Importance",
-    y = "Variable"
-  ) +
-  theme_minimal()
-
-# For default Random Forest (to check robustness)
-per_imp_default <- importance(rf_default, type = 1, scale = TRUE)
-
-per_imp_default <- as.data.frame(per_imp_default) %>%
-  rownames_to_column(var ="Variable") %>%
-  arrange(desc(MeanDecreaseAccuracy))
-
-ggplot(per_imp_default, aes(x = MeanDecreaseAccuracy, y = reorder(Variable, MeanDecreaseAccuracy))) +
-  geom_col(fill = "plum4") +
-  labs(
-    title = "Permutation Importance (Default RF)",
-    subtitle = "Mean decrease in accuracy, scaled by se",
-    x = "Permutation Importance",
-    y = "Variable"
-  ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"))
 
 ## Impurity-based (Gini) importance
 
@@ -528,7 +499,8 @@ ggplot(imp, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecreaseGini))) 
     x = "Impurity Importance",
     y = "Variable"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"))
 
 #For default RF (to check robustness)
 imp_default <- importance(rf_default, type = 2, scale = TRUE)
@@ -545,43 +517,8 @@ ggplot(imp_default, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecrease
     x = "Impurity Importance",
     y = "Variable"
   ) +
-  theme_minimal()
-
-## Impurity-based (Gini) importance
-
-#For optimal RF
-imp <- importance(rf_optimal, type = 2, scale = TRUE)
-
-imp <- as.data.frame(imp) %>%
-  rownames_to_column(var = "Variable") %>%
-  arrange(desc(MeanDecreaseGini)) 
-
-ggplot(imp, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecreaseGini))) +
-  geom_col(fill = "plum") +
-  labs(
-    title = "Impurity Importance (Optimal RF)",
-    subtitle = "Mean decrease in node impurity (Gini)",
-    x = "Impurity Importance",
-    y = "Variable"
-  ) +
-  theme_minimal()
-
-#For default RF (to check robustness)
-imp_default <- importance(rf_default, type = 2, scale = TRUE)
-
-imp_default <- as.data.frame(imp_default) %>%
-  rownames_to_column(var = "Variable") %>%
-  arrange(desc(MeanDecreaseGini)) 
-
-ggplot(imp_default, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecreaseGini))) +
-  geom_col(fill = "plum") +
-  labs(
-    title = "Impurity Importance (Default RF)",
-    subtitle = "Mean decrease in node impurity (Gini)",
-    x = "Impurity Importance",
-    y = "Variable"
-  ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"))
 
 #RF without rec_agri_payment and rec_gov_pension
 set.seed(67)
