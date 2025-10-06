@@ -85,34 +85,6 @@ train_dist <- data_train %>%
 
 train_dist
 
-################################################################################
-# Apply SMOTE 
-################################################################################
-
-set.seed(67)
-
-cat("\nBefore SMOTE:\n")
-print(table(data_train$has_debit_card))
-
-# Convert data to data.frame (themis works with tibbles or data.frames)
-df_train <- as.data.frame(data_train)
-
-# Run SMOTENC
-data_train_bal <- smotenc(
-  df = df_train,
-  var = "has_debit_card",  # target variable (must be factor)
-  k = 5,                   # number of neighbors
-  over_ratio = 1          # balance classes 1:0.8 because if 1:1 -> overfit
-)
-
-cat("\nAfter SMOTE (themis::smotenc):\n")
-print(table(data_train_bal$has_debit_card))
-
-# Check structure
-str(data_train_bal)
-
-# Replace training dataset
-data_train <- data_train_bal
 
 ################################################################################
 # Tree stabilization analysis OOB
@@ -314,7 +286,6 @@ ggplot(cm_d, aes(x = Prediction, y = Reference, fill = Freq)) +
   coord_equal() +
   labs(
     title = "Confusion Matrix - Default (Test Set)",
-    subtitle = "Evaluated after SMOTE-NC balancing",
     x = "Predicted Class",
     y = "Actual Class"
   ) +
@@ -330,13 +301,13 @@ roc_obj_default <- roc(response = data_test$has_debit_card, predictor = rf_pred_
 auc_default <- auc(roc_obj_default)
 cat("AUC (ROC) Default RF:", auc_default, "\n")
 
-### Tuned RF (Optimal: 750 trees, mtry=2)
+### Tuned RF (Optimal: 500 trees, mtry=1)
 set.seed(67)
 rf_optimal <- randomForest(has_debit_card ~ ., data = data_train,
                            importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
-                           ntree = 750, mtry = 2)
+                           ntree = 500, mtry = 1)
 
-cat("\n--- Tuned RF (750 trees, mtry=2) ---\n")
+cat("\n--- Tuned RF (500 trees, mtry=1) ---\n")
 print(rf_optimal)   # OOB error
 
 # Predictions (class + probability)
@@ -357,7 +328,6 @@ ggplot(cm_optimal, aes(x = Prediction, y = Reference, fill = Freq)) +
   coord_equal() +
   labs(
     title = "Confusion Matrix - Tuned (Test Set)",
-    subtitle = "Evaluated after SMOTE-NC balancing",
     x = "Predicted Class",
     y = "Actual Class"
   ) +
@@ -402,7 +372,7 @@ extract_metrics <- function(cm, auc_val, model_name) {
 }
 
 metrics_default <- extract_metrics(cm_default, auc_default, "Default RF (500 trees, mtry=3)")
-metrics_optimal <- extract_metrics(cm_opt, auc_opt, "Tuned RF (750 trees, mtry=2)")
+metrics_optimal <- extract_metrics(cm_opt, auc_opt, "Tuned RF (500 trees, mtry=1)")
 
 comparison_table <- rbind(metrics_default, metrics_optimal) %>%
   mutate(across(where(is.numeric), round, 4))
@@ -532,7 +502,7 @@ rf_optimal_select <- randomForest(has_debit_card ~ ., data = data_train_select,
                            importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
                            ntree = 750, mtry = 2)
 
-cat("\n--- Tuned RF (750 trees, mtry=2) ---\n")
+cat("\n--- Tuned RF (500 trees, mtry=1) ---\n")
 print(rf_optimal_select)   # OOB error
 
 # Predictions (class + probability)
@@ -553,6 +523,65 @@ ggplot(cm_optimal_select, aes(x = Prediction, y = Reference, fill = Freq)) +
   coord_equal() +
   labs(
     title = "Confusion Matrix - Tuned (Selected Test Set)",
+    subtitle = "Evaluated after SMOTE-NC balancing",
+    x = "Predicted Class",
+    y = "Actual Class"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+
+################################################################################
+# Apply SMOTE 
+################################################################################
+
+set.seed(67)
+
+cat("\nBefore SMOTE:\n")
+print(table(data_train$has_debit_card))
+
+# Convert data to data.frame (themis works with tibbles or data.frames)
+df_train <- as.data.frame(data_train)
+
+# Run SMOTENC
+data_train_bal <- smotenc(
+  df = df_train,
+  var = "has_debit_card",  # target variable (must be factor)
+  k = 5,                   # number of neighbors
+  over_ratio = 1          # balance classes 1:0.8 because if 1:1 -> overfit
+)
+
+cat("\nAfter SMOTE (themis::smotenc):\n")
+print(table(data_train_bal$has_debit_card))
+
+# Check structure
+str(data_train_bal)
+
+# Replace training dataset
+data_train <- data_train_bal
+
+set.seed(67)
+rf_optimal_smote <- randomForest(has_debit_card ~ ., data = data_train,
+                           importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
+                           ntree = 500, mtry = 6)
+
+rf_pred_class_optimal_smote <- predict(rf_optimal_smote, newdata = data_test, type = "response")
+
+cm_optimal_smote <- confusionMatrix(rf_pred_class_optimal_smote, data_test$has_debit_card, positive="Yes")
+print(cm_optimal_smote)
+
+# Visualization confusion matrix
+cm_o_s <- as.data.frame(cm_optimal_smote$table)
+
+ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
+  scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
+  coord_equal() +
+  labs(
+    title = "Confusion Matrix - Tuned (Test Set)",
     subtitle = "Evaluated after SMOTE-NC balancing",
     x = "Predicted Class",
     y = "Actual Class"
