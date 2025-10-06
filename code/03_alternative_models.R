@@ -192,7 +192,7 @@ set.seed(67)
 dt_tuned <- caret::train(
   has_debit_card ~ ., data = train,
   method = "rpart",
-  trControl = ctrl_cv, # Uses Helper: 5-fold CV predefined in Section 0.4)
+  trControl = ctrl_cv, # Uses Helper: 10-fold CV predefined in Section 0.4)
   tuneGrid = expand.grid(cp = seq(0.00001, 0.002, length.out = 10)), #Pruning range to determine best cp
   metric = "ROC" #Best pruning range is determined by maximising ROC
 )
