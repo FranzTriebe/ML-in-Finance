@@ -402,7 +402,7 @@ extract_metrics <- function(cm, auc_val, model_name) {
 }
 
 metrics_default <- extract_metrics(cm_default, auc_default, "Default RF (500 trees, mtry=3)")
-metrics_optimal <- extract_metrics(cm_opt, auc_opt, "Tuned RF (750 trees, mtry=1)")
+metrics_optimal <- extract_metrics(cm_opt, auc_opt, "Tuned RF (750 trees, mtry=2)")
 
 comparison_table <- rbind(metrics_default, metrics_optimal) %>%
   mutate(across(where(is.numeric), round, 4))
