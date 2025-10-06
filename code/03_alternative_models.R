@@ -4,6 +4,7 @@
 # Author: Jonah-B. Lohmann
 # Random Seed: 67
 # Runtime: ca. 45 seconds (excl. package installation)
+# Compatibility: Can be placed right underneath 02_random_forest.R without tweaks
 ################################################################################
 
 ################################################################################
@@ -411,18 +412,38 @@ plotnet(
 ################################################################################
 # 3) Model Comparison: Decision Tree vs. Random Forest vs. Neural Network
 ################################################################################
-# ---- [Delete later] Placeholder for RF test metrics ----
-# Command: To ensure compatibility with this script, follow this naming convention
+# ---- 3.0) Rename RF test metrics for comparison ----
+
+# To ensure compatibility with the following script, this is the naming logic:
+# Tuned RF Predictions (in probability) = rf_prob_tuned
 # Final RF Confusion Matrix = rf_cm_tuned
 # Final RF Accuracy = rf_acc_test
 # Final RF Area under Curve (AUC) = rf_auc_test
 
-# If you RF test metrics in this environment, this block will be skipped.
+# [Disclaimer] This only works if random forest file is ran beforehand
+# Renaming of before defined random forest
+
+# (Rename) RF tuned: Prediction Probabilities
+rf_prob_tuned <- rf_pred_prob_opt
+
+# (Rename) RF tuned: Confusion matrix
+rf_cm_tuned <- cm_opt
+
+# RF tuned: Highlight Accuracy (from renamed RF Confusion Matrix)
+rf_acc_tuned <- as.numeric(rf_cm_tuned$overall
+                           ["Accuracy"])
+
+# RF tuned: Highlight ROC AUC (from renamed prediction probabilities)
+rf_auc_tuned <- as.numeric(pROC::auc(pROC::roc(response = data_test$has_debit_card,
+                                               predictor = rf_prob_tuned,
+                                               levels = c("No","Yes"))))
+
+# If RF test metrics are saved & named correctly in this environment, this block will be skipped.
 if (!exists("rf_acc_tuned")) {
-  rf_acc_tuned <- as.numeric(NA)  # replace with numeric (e.g., 0.78)
+  rf_acc_tuned <- as.numeric(NA)
 }
 if (!exists("rf_auc_tuned")) {
-  rf_auc_tuned <- as.numeric(NA)  # replace with numeric (e.g., 0.83)
+  rf_auc_tuned <- as.numeric(NA)
 }
 # If RF confusion matrix inexistent this will be set to NULL and secondary metrics for RF will be NA.
 if (!exists("rf_cm_tuned")) {
@@ -511,7 +532,7 @@ all_metrics <- bind_rows(
 
 # Color scheme for barchart
 model_colors <- c(
-  "Decision Tree" = "steelblue1",
+  "Decision Tree" = "steelblue2",
   "Random Forest" = "plum2",
   "Neural Net"    = "olivedrab2"
 )
@@ -527,7 +548,7 @@ cat("\n===== Benchmark bar chart across models (TEST) =====\n")
 ggplot(all_metrics, aes(x = Metric, y = Value, fill = Model)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.8) +
   scale_fill_manual(values = model_colors) +
-  coord_cartesian(ylim = c(0.5, 1)) +  # just zooms; doesn’t cut data
+  coord_cartesian(ylim = c(0.5, 0.85)) +  # just zooms; doesn’t cut data
   labs(
     title = "Benchmarking DT vs. RF vs. NN",
     subtitle = "Primary: ROC & Accuracy 
@@ -537,6 +558,7 @@ Secondary: Balanced Accuracy, Sensitivity, Specificity",
     fill = "Model"
   ) +
   theme_minimal(base_size = 14)
+
 
 cat("\n===== Success: 3.3) Benchmarking: DT vs. RF vs. NN (all metrics) =====\n")
 
