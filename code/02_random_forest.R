@@ -562,6 +562,18 @@ str(data_train_bal)
 # Replace training dataset
 data_train <- data_train_bal
 
+#Visualization training distribution
+train_dist_smote <- data_train_bal %>%
+  count(has_debit_card, name = "Count") %>%
+  mutate(Percent = Count/sum(Count)) %>%
+  rename(Class = has_debit_card) %>%
+  gt() %>%
+  fmt_percent(columns = "Percent", decimals = 1) %>%
+  cols_label() %>%
+  tab_header(title = "Training Set Distribution")
+
+train_dist_smote
+
 set.seed(67)
 rf_optimal_smote <- randomForest(has_debit_card ~ ., data = data_train,
                            importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
