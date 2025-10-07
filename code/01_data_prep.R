@@ -7,6 +7,7 @@ library(tidyverse)
 library(dplyr)
 library(skimr)
 library(ggcorrplot)
+library(gt)
 
 #import dataset
 df <- read_csv("~/OneDrive - Universität St.Gallen/Semester 5/Machine Learning/Project/micro_ind.csv")
@@ -171,14 +172,33 @@ df_final <- df_final %>%
 
 ########################summary statistics################################
 
-dim(df_final)                                 #number of observations and variables
-mean(df_final$female, na.rm = TRUE)           #ratio of female
-mean(df_final$age, na.rm = TRUE)              #mean of age
-min(df_final$age, na.rm = TRUE)               #minimum of age
-max(df_final$age, na.rm = TRUE)               #maximum of age
-mean(df_final$income_q, na.rm = TRUE)         #mean of income quintile
-min(df_final$income_q, na.rm = TRUE)          #minimum of income quintile
-max(df_final$income_q, na.rm = TRUE)          #maximum of income quintile
+#compute summary stats for each variable
+df_summary <- df_final %>%
+  pivot_longer(cols = everything(), names_to = "Variables", values_to = "value") %>%
+  group_by(Variables) %>%
+  summarise(
+    Observations       = sum(!is.na(value)),           
+    Mean               = mean(value, na.rm = TRUE),   
+    `Standard Deviation` = sd(value, na.rm = TRUE),    
+    Min                = min(value, na.rm = TRUE),    
+    Max                = max(value, na.rm = TRUE)      
+  ) %>%
+  ungroup()
+
+df_summary <- df_summary %>%
+  mutate(across(where(is.numeric), ~ round(.x, 2)))
+
+#create a gt table with formatting
+summary_table <- df_summary %>%
+  gt() %>%
+  fmt_number(columns = where(is.numeric), decimals = 2) %>%         
+  opt_row_striping() %>%                                           
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()                         
+  )
+
+print(summary_table)
 
 ######################proportion barplots#################################
 
