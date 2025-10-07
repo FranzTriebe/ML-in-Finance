@@ -273,7 +273,7 @@ rf_pred_class_default <- predict(rf_default, newdata = data_test, type = "respon
 rf_pred_prob_default  <- predict(rf_default, newdata = data_test, type = "prob")[,"Yes"]
 
 # Confusion matrix with detailed stats
-cm_default <- confusionMatrix(rf_pred_class_default, data_test$has_debit_card, positive="Yes")
+cm_default <- confusionMatrix(rf_pred_class_default, data_test$has_debit_card, positive="No")
 print(cm_default)
 
 # Visualization confusion matrix
@@ -315,7 +315,7 @@ rf_pred_class_opt <- predict(rf_optimal, newdata = data_test, type = "response")
 rf_pred_prob_opt  <- predict(rf_optimal, newdata = data_test, type = "prob")[,"Yes"]
 
 # Confusion matrix with detailed stats
-cm_opt <- confusionMatrix(rf_pred_class_opt, data_test$has_debit_card, positive="Yes")
+cm_opt <- confusionMatrix(rf_pred_class_opt, data_test$has_debit_card, positive="No")
 print(cm_opt)
 
 # Visualization confusion matrix on test data
@@ -500,7 +500,7 @@ data_test_select <- data_test %>%
 
 rf_optimal_select <- randomForest(has_debit_card ~ ., data = data_train_select,
                            importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
-                           ntree = 750, mtry = 2)
+                           ntree = 500, mtry = 1)
 
 cat("\n--- Tuned RF (500 trees, mtry=1) ---\n")
 print(rf_optimal_select)   # OOB error
@@ -510,7 +510,7 @@ rf_pred_class_opt_select <- predict(rf_optimal_select, newdata = data_test_selec
 rf_pred_prob_opt_select  <- predict(rf_optimal_select, newdata = data_test_select, type = "prob")[,"Yes"]
 
 # Confusion matrix with detailed stats
-cm_opt_select <- confusionMatrix(rf_pred_class_opt_select, data_test_select$has_debit_card, positive="Yes")
+cm_opt_select <- confusionMatrix(rf_pred_class_opt_select, data_test_select$has_debit_card, positive="No")
 print(cm_opt_select)
 
 # Visualization confusion matrix on test data
@@ -581,7 +581,7 @@ rf_optimal_smote <- randomForest(has_debit_card ~ ., data = data_train,
 
 rf_pred_class_optimal_smote <- predict(rf_optimal_smote, newdata = data_test, type = "response")
 
-cm_optimal_smote <- confusionMatrix(rf_pred_class_optimal_smote, data_test$has_debit_card, positive="Yes")
+cm_optimal_smote <- confusionMatrix(rf_pred_class_optimal_smote, data_test$has_debit_card, positive="No")
 print(cm_optimal_smote)
 
 # Visualization confusion matrix
