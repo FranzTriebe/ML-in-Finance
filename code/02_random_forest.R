@@ -570,7 +570,7 @@ train_dist_smote <- data_train_bal %>%
   gt() %>%
   fmt_percent(columns = "Percent", decimals = 1) %>%
   cols_label() %>%
-  tab_header(title = "Training Set Distribution")
+  tab_header(title = "Training Set Distribution (SMOTE-NC)")
 
 train_dist_smote
 
