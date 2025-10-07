@@ -285,16 +285,11 @@ ggplot(cm_d, aes(x = Prediction, y = Reference, fill = Freq)) +
   scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
   coord_equal() +
   labs(
-    title = "Confusion Matrix - Default (Test Set)",
-    x = "Predicted Class",
-    y = "Actual Class"
+    x = "Predicted",
+    y = "Actual"
   ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    plot.subtitle = element_text(hjust = 0.5)
-  )
-
+  theme_minimal(base_size = 14)
+  
 # Extra metrics
 roc_obj_default <- roc(response = data_test$has_debit_card, predictor = rf_pred_prob_default,
                        levels = c("No","Yes"), direction = "<")
@@ -327,15 +322,10 @@ ggplot(cm_optimal, aes(x = Prediction, y = Reference, fill = Freq)) +
   scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
   coord_equal() +
   labs(
-    title = "Confusion Matrix - Tuned (Test Set)",
-    x = "Predicted Class",
-    y = "Actual Class"
+    x = "Predicted",
+    y = "Actual"
   ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    plot.subtitle = element_text(hjust = 0.5)
-  )
+  theme_minimal(base_size = 14)
   
 # Extra metrics
 roc_obj_opt <- roc(response = data_test$has_debit_card, predictor = rf_pred_prob_opt,
