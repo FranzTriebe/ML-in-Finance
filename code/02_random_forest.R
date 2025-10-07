@@ -40,15 +40,15 @@ data$rec_agri_payment<- factor(data$rec_agri_payment, levels = c(0,1), labels = 
 data$paid_ut_bill    <- factor(data$paid_ut_bill, levels = c(0,1), labels = c("No","Yes"))
 data$internetaccess  <- factor(data$internetaccess, levels = c(0,1), labels = c("No","Yes"))
 data$mobileowner     <- factor(data$mobileowner, levels = c(0,1), labels = c("No","Yes"))
-#data$has_debit_card  <- factor(data$has_debit_card, levels = c(0,1), labels = c("No","Yes"))
-data$has_debit_card <- ifelse(data$has_debit_card == 1, 0, 1)
+data$has_debit_card  <- factor(data$has_debit_card, levels = c(0,1), labels = c("No","Yes"))
+#data$has_debit_card <- ifelse(data$has_debit_card == 1, 0, 1)
 
 # Convert back to factor with correct labels
-data$has_debit_card <- factor(
-  data$has_debit_card,
-  levels = c(0, 1),
-  labels = c("Yes", "No")
-)
+#data$has_debit_card <- factor(
+  #data$has_debit_card,
+  #levels = c(0, 1),
+  #labels = c("Yes", "No")
+#)
 
 # Convert ordinal variables
 data$educ <- factor(data$educ, 
@@ -281,7 +281,7 @@ rf_pred_class_default <- predict(rf_default, newdata = data_test, type = "respon
 rf_pred_prob_default  <- predict(rf_default, newdata = data_test, type = "prob")[,"Yes"]
 
 # Confusion matrix with detailed stats
-cm_default <- confusionMatrix(rf_pred_class_default, data_test$has_debit_card, positive="No")
+cm_default <- confusionMatrix(rf_pred_class_default, data_test$has_debit_card, positive="Yes")
 print(cm_default)
 
 # Visualization confusion matrix
@@ -318,7 +318,7 @@ rf_pred_class_opt <- predict(rf_optimal, newdata = data_test, type = "response")
 rf_pred_prob_opt  <- predict(rf_optimal, newdata = data_test, type = "prob")[,"Yes"]
 
 # Confusion matrix with detailed stats
-cm_opt <- confusionMatrix(rf_pred_class_opt, data_test$has_debit_card, positive="No")
+cm_opt <- confusionMatrix(rf_pred_class_opt, data_test$has_debit_card, positive="Yes")
 print(cm_opt)
 
 # Visualization confusion matrix on test data
@@ -508,7 +508,7 @@ rf_pred_class_opt_select <- predict(rf_optimal_select, newdata = data_test_selec
 rf_pred_prob_opt_select  <- predict(rf_optimal_select, newdata = data_test_select, type = "prob")[,"Yes"]
 
 # Confusion matrix with detailed stats
-cm_opt_select <- confusionMatrix(rf_pred_class_opt_select, data_test_select$has_debit_card, positive="No")
+cm_opt_select <- confusionMatrix(rf_pred_class_opt_select, data_test_select$has_debit_card, positive="Yes")
 print(cm_opt_select)
 
 # Visualization confusion matrix on test data
@@ -579,7 +579,7 @@ rf_optimal_smote <- randomForest(has_debit_card ~ ., data = data_train,
 
 rf_pred_class_optimal_smote <- predict(rf_optimal_smote, newdata = data_test, type = "response")
 
-cm_optimal_smote <- confusionMatrix(rf_pred_class_optimal_smote, data_test$has_debit_card, positive="No")
+cm_optimal_smote <- confusionMatrix(rf_pred_class_optimal_smote, data_test$has_debit_card, positive="Yes")
 print(cm_optimal_smote)
 
 # Visualization confusion matrix
