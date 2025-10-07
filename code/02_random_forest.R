@@ -40,7 +40,15 @@ data$rec_agri_payment<- factor(data$rec_agri_payment, levels = c(0,1), labels = 
 data$paid_ut_bill    <- factor(data$paid_ut_bill, levels = c(0,1), labels = c("No","Yes"))
 data$internetaccess  <- factor(data$internetaccess, levels = c(0,1), labels = c("No","Yes"))
 data$mobileowner     <- factor(data$mobileowner, levels = c(0,1), labels = c("No","Yes"))
-data$has_debit_card  <- factor(data$has_debit_card, levels = c(0,1), labels = c("No","Yes"))
+#data$has_debit_card  <- factor(data$has_debit_card, levels = c(0,1), labels = c("No","Yes"))
+data$has_debit_card <- ifelse(data$has_debit_card == 1, 0, 1)
+
+# Convert back to factor with correct labels
+data$has_debit_card <- factor(
+  data$has_debit_card,
+  levels = c(0, 1),
+  labels = c("Yes", "No")
+)
 
 # Convert ordinal variables
 data$educ <- factor(data$educ, 
