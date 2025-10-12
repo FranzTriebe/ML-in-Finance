@@ -14,66 +14,21 @@ library(gt)
 library(reshape2)
 library(RColorBrewer)
 library(themis)
-
-################################################################################
-# Data Loading & Preparation
-################################################################################
-
-#Higher perfomance (only if necessary!!!)
-#cl <- makeCluster(detectCores()-3)
-#registerDoParallel(cl)
-
-# Load raw data
-data <- read.csv("data/processed/df_final.csv")
-
-# Inspect structure
-summary(data)
-str(data)
-
-# Convert binary integers to factors
-data$female          <- factor(data$female, levels = c(0,1), labels = c("male","female"))
-data$urban           <- factor(data$urban, levels = c(0,1), labels = c("rural","urban"))
-data$employed        <- factor(data$employed, levels = c(0,1), labels = c("unemployed","employed"))
-data$rec_gov_transfer<- factor(data$rec_gov_transfer, levels = c(0,1), labels = c("No","Yes"))
-data$rec_gov_pension <- factor(data$rec_gov_pension, levels = c(0,1), labels = c("No","Yes"))
-data$rec_agri_payment<- factor(data$rec_agri_payment, levels = c(0,1), labels = c("No","Yes"))
-data$paid_ut_bill    <- factor(data$paid_ut_bill, levels = c(0,1), labels = c("No","Yes"))
-data$internetaccess  <- factor(data$internetaccess, levels = c(0,1), labels = c("No","Yes"))
-data$mobileowner     <- factor(data$mobileowner, levels = c(0,1), labels = c("No","Yes"))
-data$has_debit_card  <- factor(data$has_debit_card, levels = c(0,1), labels = c("No","Yes"))
-#data$has_debit_card <- ifelse(data$has_debit_card == 1, 0, 1)
-
-# Convert back to factor with correct labels
-#data$has_debit_card <- factor(
-  #data$has_debit_card,
-  #levels = c(0, 1),
-  #labels = c("Yes", "No")
-#)
-
-# Convert ordinal variables
-data$educ <- factor(data$educ, 
-                    levels = c(1,2,3), 
-                    labels = c("primary_or_less","secondary","tertiary_or_more"), 
-                    ordered = TRUE)
-
-data$income_q <- factor(data$income_q, 
-                        level = c(1,2,3,4,5), 
-                        labels = c("poorest_20","second_20","middle_20","fourth_20","richest_20"), 
-                        ordered = TRUE)
-
-# Keep only complete cases
-data_clean <- na.omit(data)
-
+library(reshape2)
 
 ################################################################################
 # Data splitting
 ################################################################################
 
+#Higher perfomance (only if necessary!!!)
+#cl <- makeCluster(detectCores()-3)
+#registerDoParallel(cl)
 #70 % training 30 % testing
+
 set.seed(67)
-train_index <- createDataPartition(data_clean$has_debit_card, p = 0.7, list = FALSE)
-data_train <- data_clean[train_index, ]
-data_test  <- data_clean[-train_index, ]
+train_index <- createDataPartition(df_final$has_debit_card, p = 0.7, list = FALSE)
+data_train <- df_final[train_index, ]
+data_test  <- df_final[-train_index, ]
 
 #set distributions
 cat("training distribution:\n")
@@ -388,7 +343,6 @@ print(comparison_table)
 cat("=====================================================================\n")
 
 # Visualization 
-library(reshape2)
 comparison_long <- melt(comparison_table, id.vars = "Model")
 
 ggplot(comparison_long, aes(x = variable, y = value, fill = Model)) +
@@ -521,7 +475,7 @@ ggplot(cm_optimal_select, aes(x = Prediction, y = Reference, fill = Freq)) +
   coord_equal() +
   labs(
     title = "Confusion Matrix - Tuned (Selected Test Set)",
-    subtitle = "Evaluated after SMOTE-NC balancing",
+    subtitle = "Evaluated after omitting rec_agri_payment and rec_gov_pension",
     x = "Predicted Class",
     y = "Actual Class"
   ) +
@@ -602,6 +556,9 @@ ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
     plot.subtitle = element_text(hjust = 0.5)
   )
 
+# end the higher perfomance setting (if you started it)
+#stopCluster(cl)
+#registerDoSEQ()
 
 
 

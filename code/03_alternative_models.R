@@ -51,35 +51,15 @@ set.seed(67)
 
 cat("\n===== Success: 0.1) Load packages & set seed =====\n")
 
-
-# -------- 0.2) Load data (already preprocessed elsewhere) --------
-cat("\n 0.2) Load data (already preprocessed elsewhere) \n")
-
-# Load pre-processed data
-data_na <- readRDS("/Users/jonah-baptiste/Documents/2_Ausbildung/2_HSG_UdeSA/7_Sem_VWL/3_Machine Learning_Finance/0_3_Homework/ML-in-Finance/data/processed/df_final.rds")
-
-# Keep only complete cases, to ensure same data used for Decision Tree & NN
-# ANN can't handle NAs and the small number thereof justifies dropping them
-data <- na.omit(data_na)
-
-# Inspect data - Columns: 13 (10 fct, 2 ord, 1 int), Rows: 2305, no NAs
-cat("\n===== Data & predictor overview =====\n")
-glimpse(data)
-cat("\n===== Data summary =====\n")
-summary(data)
-
 # For later: Store count of predictors
 p <- ncol(train) - 1
-
-cat("\n===== 0.2) Sucess: Load Data =====\n")
-
 
 # -------- 0.3) Data Splitting (70% train / 30% test) --------
 cat("\n 0.3) Data Splitting (70% train / 30% test) \n")
 
 # Creates a 70% / 30% stratified split by the target of having a debit card
 set.seed(67)
-init_split_obj <- initial_split(data, prop = 0.7, strata = has_debit_card)
+init_split_obj <- initial_split(df_final, prop = 0.7, strata = has_debit_card)
 train <- training(init_split_obj)
 test  <- testing(init_split_obj)
 

@@ -10,7 +10,7 @@ library(ggcorrplot)
 library(gt)
 
 #import dataset
-df <- read_csv("~/OneDrive - Universität St.Gallen/Semester 5/Machine Learning/Project/micro_ind.csv")
+df <- read_csv("data/raw/microdata_india_raw.csv")
 
 #select possible variables to use
 df_select <- df %>% select(female, 
@@ -142,16 +142,16 @@ variable_summary(df_final, has_debit_card)    #35 NAs (shown as 3s and 4s)
 
 #clean binary data and deal with missing values
 df_final <- df_final %>%
-  mutate(female = ifelse(female == 2, 0, female)) %>%.                               #set binary 0 or 1
+  mutate(female = ifelse(female == 2, 0, female)) %>%                                #set binary 0 or 1
   mutate(educ = ifelse(educ > 3, NA, educ)) %>%                                      #set 4s and 5s to NA; set binary to 0 or 1
   mutate(urban = ifelse(urban == 2, 1, 0)) %>%                                       #set binary 0 or 1
-  mutate(employed = ifelse(employed == 2, 0, employed)) %>%.                         #set binary 0 or 1
+  mutate(employed = ifelse(employed == 2, 0, employed)) %>%                          #set binary 0 or 1
   mutate(rec_gov_transfer = ifelse(rec_gov_transfer > 2, NA, rec_gov_transfer)) %>%  #set 3s and 4s to NA
   mutate(rec_gov_transfer = ifelse(rec_gov_transfer == 2, 0, rec_gov_transfer)) %>%  #set binary to 0 or 1
   mutate(rec_gov_pension = ifelse(rec_gov_pension > 2, NA, rec_gov_pension)) %>%     #set 3s and 4s to NA
   mutate(rec_gov_pension = ifelse(rec_gov_pension == 2, 0, rec_gov_pension)) %>%     #set binary to 0 or 1
-  mutate(rec_agri_payment = ifelse(rec_agri_payment > 2, NA, rec_agri_payment)) %>%. #set 3s and 4s to NA
-  mutate(rec_agri_payment = ifelse(rec_agri_payment == 2, 0, rec_agri_payment)) %>%. #set binary to 0 or 1
+  mutate(rec_agri_payment = ifelse(rec_agri_payment > 2, NA, rec_agri_payment)) %>%  #set 3s and 4s to NA
+  mutate(rec_agri_payment = ifelse(rec_agri_payment == 2, 0, rec_agri_payment)) %>%  #set binary to 0 or 1
   mutate(paid_ut_bill = ifelse(paid_ut_bill > 2, NA, paid_ut_bill)) %>%              #set 3s and 4s to NA
   mutate(paid_ut_bill = ifelse(paid_ut_bill == 2, 0, paid_ut_bill)) %>%              #set binary to 0 or 1
   mutate(internetaccess = ifelse(internetaccess > 2, NA, internetaccess)) %>%        #set 3s to NA
@@ -169,6 +169,32 @@ df_final <- df_final %>%
 #drop observations with missing data in the target variable
 df_final <- df_final %>%
   filter(!is.na(has_debit_card))
+
+# Convert binary integers to factors
+df_final$female          <- factor(df_final$female, levels = c(0,1), labels = c("male","female"))
+df_final$urban           <- factor(df_final$urban, levels = c(0,1), labels = c("rural","urban"))
+df_final$employed        <- factor(df_final$employed, levels = c(0,1), labels = c("unemployed","employed"))
+df_final$rec_gov_transfer<- factor(df_final$rec_gov_transfer, levels = c(0,1), labels = c("No","Yes"))
+df_final$rec_gov_pension <- factor(df_final$rec_gov_pension, levels = c(0,1), labels = c("No","Yes"))
+df_final$rec_agri_payment<- factor(df_final$rec_agri_payment, levels = c(0,1), labels = c("No","Yes"))
+df_final$paid_ut_bill    <- factor(df_final$paid_ut_bill, levels = c(0,1), labels = c("No","Yes"))
+df_final$internetaccess  <- factor(df_final$internetaccess, levels = c(0,1), labels = c("No","Yes"))
+df_final$mobileowner     <- factor(df_final$mobileowner, levels = c(0,1), labels = c("No","Yes"))
+df_final$has_debit_card  <- factor(df_final$has_debit_card, levels = c(0,1), labels = c("No","Yes"))
+
+# Convert ordinal variables
+df_final$educ <- factor(df_final$educ, 
+                        levels = c(1,2,3), 
+                        labels = c("primary_or_less","secondary","tertiary_or_more"), 
+                        ordered = TRUE)
+
+df_final$income_q <- factor(df_final$income_q, 
+                            level = c(1,2,3,4,5), 
+                            labels = c("poorest_20","second_20","middle_20","fourth_20","richest_20"), 
+                            ordered = TRUE)
+
+# Keep only complete cases
+df_final <- na.omit(df_final)
 
 ########################summary statistics################################
 
