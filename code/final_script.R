@@ -604,6 +604,54 @@ ggplot(results_cv, aes(x = mtry, y = ROC, color = factor(ntree))) +
   theme_minimal(base_size = 14)
 
 # ──────────────────────────────────────────────────────────────────────────────
+#### 5. Optimisation of mtry and ntree with LOOCV (ROC); WARNING - Runtime! ####
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Warning: Very slow (can take several hours without parallelization)
+set.seed(67)
+
+control_loocv <- trainControl(
+  method = "LOOCV",
+  search = "grid",
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary
+)
+
+results_loocv <- list()
+
+for (nt in ntree_values) {
+  cat("==== LOOCV: ntree =", nt, "====\n")
+  
+  rf_loocv <- train(
+    has_debit_card ~ ., data = data_train,
+    method = "rf",
+    metric = "ROC",
+    tuneGrid = tune_grid,
+    trControl = control_loocv,
+    ntree = nt
+  )
+  
+  rf_loocv$results$ntree <- nt
+  rf_loocv$results$type  <- "LOOCV"
+  
+  results_loocv[[paste0("ntree_", nt)]] <- rf_loocv$results
+}
+
+results_loocv <- bind_rows(results_loocv)
+
+ggplot(results_loocv, aes(x = mtry, y = ROC, color = factor(ntree))) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = seq(min(results_loocv$mtry), max(results_cv$mtry), 1)) +
+  labs(
+    title = "Random Forest (LOOCV): AUC ROC by mtry × ntree",
+    x = "mtry",
+    y = "AUC (ROC)",
+    color = "ntree"
+  ) +
+  theme_minimal(base_size = 14)
+
+# ──────────────────────────────────────────────────────────────────────────────
 #### 6. Model Evaluation on Test Data: Default vs Tuned ####
 # ──────────────────────────────────────────────────────────────────────────────
 
