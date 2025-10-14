@@ -7,6 +7,7 @@
 
 # ──────────────────────────────────────────────────────────────────────────────
 #### 1. Load required libraries ####
+cat("\n--- Start: 1. Load required libraries ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 cat("\n 0.1) Load packages & set seed \n")
@@ -74,13 +75,17 @@ suppressPackageStartupMessages({
 })
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 1. Load required libraries ---\n")
 #### 2. Import dataset ####
+cat("\n--- Start: 2. Import dataset ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 df <- read_csv("data/raw/microdata_india_raw.csv")
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 2. Import dataset ---\n")
 #### 3. Select relevant variables ####
+cat("\n--- Start: 3. Select relevant variables ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_selected <- df %>%
@@ -101,7 +106,9 @@ df_selected <- df %>%
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 3. Select relevant variables ---\n")
 #### 4. Rename variables for clarity ####
+cat("\n--- Start: 4. Rename variables for clarity ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_renamed <- df_selected %>%
@@ -138,14 +145,18 @@ df_renamed <- df_selected %>%
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 4. Rename variables for clarity ---\n")
 #### 5. Filter only respondents with financial accounts ####
+cat("\n--- Start: 5. Filter only respondents with financial accounts ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_filtered <- df_renamed %>%
   filter(account_fin == 1)
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 5. Filter only respondents with financial accounts ---\n")
 #### 6. Select relevant predictors (government-known variables) ####
+cat("\n--- Start: 6. Select relevant predictors (government-known variables) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_final <- df_filtered %>%
@@ -156,13 +167,17 @@ df_final <- df_filtered %>%
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 6. Select relevant predictors (government-known variables) ---\n")
 #### 7. Overview of the selected data ####
+cat("\n--- Start: 7. Overview of the selected data ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 skim(df_final)
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 7. Overview of the selected data ---\n")
 #### 8. Function to summarize variable ranges and missing values ####
+cat("\n--- Start: 8. Function to summarize variable ranges and missing values ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 variable_summary <- function(data, var) {
@@ -190,7 +205,9 @@ variable_summary(df_final, mobileowner)
 variable_summary(df_final, has_debit_card)
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 8. Function to summarize variable ranges and missing values ---\n")
 #### 9. Clean binary and ordinal variables, handle missing values ####
+cat("\n--- Start: 9. Clean binary and ordinal variables, handle missing values ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_final <- df_final %>%
@@ -218,7 +235,9 @@ df_final <- df_final %>%
   filter(!is.na(has_debit_card))  # drop missing targets
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 9. Clean binary and ordinal variables, handle missing values ---\n")
 #### 10. Summary statistics ####
+cat("\n--- Start: 10. Summary statistics ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_summary <- df_final %>%
@@ -250,7 +269,9 @@ summary_table <- df_summary %>%
 print(summary_table)
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 10. Summary statistics ---\n")
 #### 11. Proportion barplots ####
+cat("\n--- Start: 11. Proportion barplots ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Convert continuous variables into factor groups
@@ -302,7 +323,9 @@ plots <- map(vars_to_plot, function(v) {
 walk(plots, print)
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 11. Proportion barplots ---\n")
 #### 12. Correlation matrix (numeric variables only) ####
+cat("\n--- Start: 12. Correlation matrix (numeric variables only) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 corr_mat <- cor(df_final, use = "pairwise.complete.obs")
@@ -336,7 +359,9 @@ corr_ord %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 12. Correlation matrix (numeric variables only) ---\n")
 #### 13. Barplot of absolute correlations with target variable ####
+cat("\n--- Start: 13. Barplot of absolute correlations with target variable ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 target_col <- "has_debit_card"
@@ -364,7 +389,9 @@ cor_with_target %>%
   theme_minimal(base_size = 13)
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 13. Barplot of absolute correlations with target variable ---\n")
 #### 14. Preparing data for modelling ####
+cat("\n--- Start: 14. Preparing data for modelling ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Convert binary integers to factors
@@ -405,7 +432,9 @@ df_final <- na.omit(df_final)
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 14. Preparing data for modelling ---\n")
 #### 1. Data splitting ####
+cat("\n--- Start: 1. Data splitting ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Optionally enable parallelization for heavy training loops
@@ -441,7 +470,9 @@ train_dist <- data_train %>%
 train_dist
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 1. Data splitting ---\n")
 #### 2. Tree stabilization analysis (OOB error) ####
+cat("\n--- Start: 2. Tree stabilization analysis (OOB error) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -507,7 +538,9 @@ for (nt in tree_counts) {
 par(mfrow = c(1, 1))  # Reset plot layout
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 2. Tree stabilization analysis (OOB error) ---\n")
 #### 3. Optimisation of mtry and ntree with OOB (Accuracy) ####
+cat("\n--- Start: 3. Optimisation of mtry and ntree with OOB (Accuracy) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -555,7 +588,9 @@ ggplot(results_oob, aes(x = mtry, y = Accuracy, color = factor(ntree))) +
   theme_minimal(base_size = 14)
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 3. Optimisation of mtry and ntree with OOB (Accuracy) ---\n")
 #### 4. Optimisation of mtry and ntree with 10-Fold CV (ROC) ####
+cat("\n--- Start: 4. Optimisation of mtry and ntree with 10-Fold CV (ROC) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -604,7 +639,9 @@ ggplot(results_cv, aes(x = mtry, y = ROC, color = factor(ntree))) +
   theme_minimal(base_size = 14)
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 4. Optimisation of mtry and ntree with 10-Fold CV (ROC) ---\n")
 #### 5. Optimisation of mtry and ntree with LOOCV (ROC); WARNING - Runtime! ####
+cat("\n--- Start: 5. Optimisation of mtry and ntree with LOOCV (ROC); WARNING - Runtime! ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Warning: Very slow (can take several hours without parallelization)
@@ -652,7 +689,9 @@ ggplot(results_loocv, aes(x = mtry, y = ROC, color = factor(ntree))) +
   theme_minimal(base_size = 14)
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 5. Optimisation of mtry and ntree with LOOCV (ROC); WARNING - Runtime! ---\n")
 #### 6. Model Evaluation on Test Data: Default vs Tuned ####
+cat("\n--- Start: 6. Model Evaluation on Test Data: Default vs Tuned ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 ### Default RF (500 trees, mtry = 3)
@@ -752,7 +791,9 @@ cat("AUC (ROC) Tuned RF:", auc_opt, "\n")
 # stopCluster(cl); registerDoSEQ()  # end parallel if started
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 6. Model Evaluation on Test Data: Default vs Tuned ---\n")
 #### 7. Model Comparison Summary (with F1) ####
+cat("\n--- Start: 7. Model Comparison Summary (with F1) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 extract_metrics <- function(cm, auc_val, model_name) {
@@ -812,7 +853,9 @@ ggplot(comparison_long, aes(x = variable, y = value, fill = Model)) +
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 7. Model Comparison Summary (with F1) ---\n")
 #### 8. Feature Importance (Permutation & Gini) ####
+cat("\n--- Start: 8. Feature Importance (Permutation & Gini) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 ## Permutation importance – optimal RF
@@ -885,7 +928,9 @@ ggplot(imp_default, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecrease
   theme(plot.title = element_text(face = "bold"))
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 8. Feature Importance (Permutation & Gini) ---\n")
 #### 9. Robustness Check – Remove Non-Significant Predictors ####
+cat("\n--- Start: 9. Robustness Check – Remove Non-Significant Predictors ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -931,7 +976,9 @@ ggplot(cm_optimal_select, aes(x = Prediction, y = Reference, fill = Freq)) +
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 9. Robustness Check – Remove Non-Significant Predictors ---\n")
 #### 10. Apply SMOTE for Class Balancing ####
+cat("\n--- Start: 10. Apply SMOTE for Class Balancing ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -1008,7 +1055,9 @@ ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 10. Apply SMOTE for Class Balancing ---\n")
 #### 11. Adapt SMOTE for Class Balancing without overfitting ####
+cat("\n--- Start: 11. Adapt SMOTE for Class Balancing without overfitting ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -1097,7 +1146,9 @@ ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
 # stopCluster(cl); registerDoSEQ()  # if parallel was used
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 11. Adapt SMOTE for Class Balancing without overfitting ---\n")
 #### 12. Generalization check of tuned Random Forest on Nepal ####
+cat("\n--- Start: 12. Generalization check of tuned Random Forest on Nepal ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 ### Data Preparation 
@@ -1351,7 +1402,9 @@ cat("AUC (ROC) Tuned RF:", auc_opt, "\n")
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 12. Generalization check of tuned Random Forest on Nepal ---\n")
 #### 1. Data Splitting (70 % train / 30 % test) ####
+cat("\n--- Start: 1. Data Splitting (70 % train / 30 % test) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 cat("\n 1. Data Splitting (70% train / 30% test) \n")
@@ -1359,12 +1412,12 @@ cat("\n 1. Data Splitting (70% train / 30% test) \n")
 # Stratified split to preserve class balance
 set.seed(67)
 split_obj <- initial_split(df_final, prop = 0.7, strata = has_debit_card)
-train <- training(split_obj)
-test  <- testing(split_obj)
+train_data <- training(split_obj)
+test_data  <- testing(split_obj)
 
 # Confirm proportions of target classes
 cat("\n===== Check class balance of split =====\n")
-map(list(train = train, test = test),
+map(list(train = train_data, test = test_data),
     ~ count(.x, has_debit_card) %>%
       mutate(proportion = n / sum(n))
 ) %>% print()
@@ -1372,7 +1425,9 @@ map(list(train = train, test = test),
 cat("\n===== Success: 1. Data split created =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 1. Data Splitting (70 % train / 30 % test) ---\n")
 #### 2. Helper Functions for Plots & Cross-Validation ####
+cat("\n--- Start: 2. Helper Functions for Plots & Cross-Validation ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 cat("\n 2. Define helper functions for plots & cross-validation \n")
@@ -1416,29 +1471,31 @@ ctrl_cv <- trainControl(
 cat("\n===== Success: 2. Helper functions ready =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 2. Helper Functions for Plots & Cross-Validation ---\n")
 #### 3. Decision Tree DEFAULT (cp = 0.01) ####
+cat("\n--- Start: 3. Decision Tree DEFAULT (cp = 0.01) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 cat("\n 3. Decision Tree DEFAULT (cp = 0.01) \n")
 
 set.seed(67)
 dt_default <- caret::train(
-  has_debit_card ~ ., data = train,
+  has_debit_card ~ ., data = train_data,
   method = "rpart",
   trControl = trainControl(method = "none", classProbs = TRUE),
   tuneGrid = data.frame(cp = 0.01)
 )
 
 # Predictions (classes + probabilities)
-dt_pred_default <- predict(dt_default, newdata = test)
-dt_prob_default <- predict(dt_default, newdata = test, type = "prob")[, "Yes"]
+dt_pred_default <- predict(dt_default, newdata = test_data)
+dt_prob_default <- predict(dt_default, newdata = test_data, type = "prob")[, "Yes"]
 
 # Confusion Matrix + Metrics
-dt_cm_default <- confusionMatrix(dt_pred_default, test$has_debit_card, positive = "Yes")
+dt_cm_default <- confusionMatrix(dt_pred_default, test_data$has_debit_card, positive = "Yes")
 dt_acc_default <- as.numeric(dt_cm_default$overall["Accuracy"])
 dt_auc_default <- as.numeric(
   pROC::auc(
-    pROC::roc(response = test$has_debit_card, predictor = dt_prob_default,
+    pROC::roc(response = test_data$has_debit_card, predictor = dt_prob_default,
               levels = c("No", "Yes"))
   )
 )
@@ -1450,14 +1507,16 @@ plot_cm_dt(dt_cm_default, "Confusion Matrix – Decision Tree (Default)")
 cat("\n==== Success: 3. DT DEFAULT trained ====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 3. Decision Tree DEFAULT (cp = 0.01) ---\n")
 #### 4. Decision Tree TUNED: 10-Fold CV on cp [0.001;0.003] ####
+cat("\n--- Start: 4. Decision Tree TUNED: 10-Fold CV on cp [0.001;0.003] ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 cat("\n 4. Decision Tree TUNED (10-fold CV on cp) \n")
 
 set.seed(67)
 dt_tuned <- caret::train(
-  has_debit_card ~ ., data = train,
+  has_debit_card ~ ., data = train_data,
   method = "rpart",
   trControl = ctrl_cv,
   tuneGrid = expand.grid(cp = seq(0.001, 0.003, length.out = 11)),
@@ -1468,15 +1527,15 @@ cat("\n===== Tuned DT – Best cp parameter =====\n")
 print(dt_tuned$bestTune)
 
 # Predictions (classes + probabilities)
-dt_pred_tuned <- predict(dt_tuned, newdata = test)
-dt_prob_tuned <- predict(dt_tuned, newdata = test, type = "prob")[, "Yes"]
+dt_pred_tuned <- predict(dt_tuned, newdata = test_data)
+dt_prob_tuned <- predict(dt_tuned, newdata = test_data, type = "prob")[, "Yes"]
 
 # Confusion Matrix + Metrics
-dt_cm_tuned <- confusionMatrix(dt_pred_tuned, test$has_debit_card, positive = "Yes")
+dt_cm_tuned <- confusionMatrix(dt_pred_tuned, test_data$has_debit_card, positive = "Yes")
 dt_acc_tuned <- as.numeric(dt_cm_tuned$overall["Accuracy"])
 dt_auc_tuned <- as.numeric(
   pROC::auc(
-    pROC::roc(response = test$has_debit_card, predictor = dt_prob_tuned,
+    pROC::roc(response = test_data$has_debit_card, predictor = dt_prob_tuned,
               levels = c("No", "Yes"))
   )
 )
@@ -1491,7 +1550,9 @@ metrics_dt_final <- c(ROC = dt_auc_tuned, Accuracy = dt_acc_tuned)
 cat("\n===== Success: 4. DT TUNED completed =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 4. Decision Tree TUNED: 10-Fold CV on cp [0.001;0.003] ---\n")
 #### 5. Decision Tree: Interpretability ####
+cat("\n--- Start: 5. Decision Tree: Interpretability ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 cat("\n 5. DT INTERPRETABILITY: Variable Importance & Structure \n")
@@ -1523,14 +1584,16 @@ rpart.plot(
 cat("\n===== Success: 5. DT INTERPRETABILITY complete =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 5. Decision Tree: Interpretability ---\n")
 #### 6. Neural Network DEFAULT: size = 5, decay = 0 ####
+cat("\n--- Start: 6. Neural Network DEFAULT: size = 5, decay = 0 ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 cat("\n 6. Neural Network DEFAULT (size = 5, decay = 0) \n")
 
 set.seed(67)
 nn_default <- caret::train(
-  has_debit_card ~ ., data = train,
+  has_debit_card ~ ., data = train_data,
   method = "nnet",
   trControl = trainControl(method = "none", classProbs = TRUE),
   tuneGrid = data.frame(size = 5, decay = 0),
@@ -1541,15 +1604,15 @@ nn_default <- caret::train(
 )
 
 # Predictions (class + probability)
-nn_pred_default <- predict(nn_default, newdata = test)
-nn_prob_default <- predict(nn_default, newdata = test, type = "prob")[, "Yes"]
+nn_pred_default <- predict(nn_default, newdata = test_data)
+nn_prob_default <- predict(nn_default, newdata = test_data, type = "prob")[, "Yes"]
 
 # Confusion matrix and metrics
-nn_cm_default <- confusionMatrix(nn_pred_default, test$has_debit_card, positive = "Yes")
+nn_cm_default <- confusionMatrix(nn_pred_default, test_data$has_debit_card, positive = "Yes")
 nn_acc_default <- as.numeric(nn_cm_default$overall["Accuracy"])
 nn_auc_default <- as.numeric(
   pROC::auc(
-    pROC::roc(response = test$has_debit_card,
+    pROC::roc(response = test_data$has_debit_card,
               predictor = nn_prob_default,
               levels = c("No", "Yes"))
   )
@@ -1565,14 +1628,16 @@ plot_cm_nn(nn_cm_default, "Confusion Matrix – Neural Network (Default)")
 cat("\n===== Success: 6. NN DEFAULT completed =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 6. Neural Network DEFAULT: size = 5, decay = 0 ---\n")
 #### 7. Neural Network TUNED: 10-Fold CV on size & decay ####
+cat("\n--- Start: 7. Neural Network TUNED: 10-Fold CV on size & decay ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 cat("\n 7. Neural Network TUNED (10-fold CV on size & decay) \n")
 
 set.seed(67)
 nn_tuned <- caret::train(
-  has_debit_card ~ ., data = train,
+  has_debit_card ~ ., data = train_data,
   method = "nnet",
   trControl = ctrl_cv,                           # defined in section 0.4
   tuneGrid = expand.grid(
@@ -1590,15 +1655,15 @@ cat("\n===== NN Tuned – Best Hyperparameters =====\n")
 print(nn_tuned$bestTune)
 
 # Predictions (class + probability)
-nn_pred_tuned <- predict(nn_tuned, newdata = test)
-nn_prob_tuned <- predict(nn_tuned, newdata = test, type = "prob")[, "Yes"]
+nn_pred_tuned <- predict(nn_tuned, newdata = test_data)
+nn_prob_tuned <- predict(nn_tuned, newdata = test_data, type = "prob")[, "Yes"]
 
 # Confusion matrix and metrics
-nn_cm_tuned <- confusionMatrix(nn_pred_tuned, test$has_debit_card, positive = "Yes")
+nn_cm_tuned <- confusionMatrix(nn_pred_tuned, test_data$has_debit_card, positive = "Yes")
 nn_acc_tuned <- as.numeric(nn_cm_tuned$overall["Accuracy"])
 nn_auc_tuned <- as.numeric(
   pROC::auc(
-    pROC::roc(response = test$has_debit_card,
+    pROC::roc(response = test_data$has_debit_card,
               predictor = nn_prob_tuned,
               levels = c("No", "Yes"))
   )
@@ -1616,7 +1681,9 @@ metrics_nn_final <- c(ROC = nn_auc_tuned, Accuracy = nn_acc_tuned)
 cat("\n===== Success: 7. NN TUNED completed =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 7. Neural Network TUNED: 10-Fold CV on size & decay ---\n")
 #### 8. Neural Network: Interpretability ####
+cat("\n--- Start: 8. Neural Network: Interpretability ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 cat("\n 8. NN INTERPRETABILITY: Visualize the final network \n")
@@ -1635,7 +1702,9 @@ plotnet(
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 8. Neural Network: Interpretability ---\n")
 #### 9. Model Comparison: Decision Tree vs Random Forest vs Neural Network ####
+cat("\n--- Start: 9. Model Comparison: Decision Tree vs Random Forest vs Neural Network ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 ## Ensure RF metrics exist for fair comparison
@@ -1657,7 +1726,9 @@ if (!exists("rf_auc_tuned")) rf_auc_tuned <- NA_real_
 if (!exists("rf_cm_tuned"))  rf_cm_tuned  <- NULL
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 9. Model Comparison: Decision Tree vs Random Forest vs Neural Network ---\n")
 #### 10. Extract Secondary Metrics from Confusion Matrices ####
+cat("\n--- Start: 10. Extract Secondary Metrics from Confusion Matrices ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 extract_cm_metrics <- function(cm_obj) {
@@ -1682,7 +1753,9 @@ nn_sec <- extract_cm_metrics(nn_cm_tuned)
 rf_sec <- extract_cm_metrics(rf_cm_tuned)
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 10. Extract Secondary Metrics from Confusion Matrices ---\n")
 #### 11. Pairwise Comparisons (DT vs RF, NN vs RF, DT vs NN) ####
+cat("\n--- Start: 11. Pairwise Comparisons (DT vs RF, NN vs RF, DT vs NN) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 comp_dt_rf <- tibble(
@@ -1712,7 +1785,9 @@ print(comp_dt_nn)
 cat("\n===== Success: 11. Pairwise comparisons complete =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
+cat("\n--- End: 11. Pairwise Comparisons (DT vs RF, NN vs RF, DT vs NN) ---\n")
 #### 12. Benchmarking of all Models ####
+cat("\n--- Start: 12. Benchmarking of all Models ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
 all_metrics <- bind_rows(
@@ -1746,7 +1821,7 @@ ggplot(all_metrics, aes(x = Metric, y = Value, fill = Model)) +
   theme_minimal(base_size = 14)
 
 cat("\n===== Success: 12. Benchmarking complete =====\n")
-
+cat("\n--- End: 12. Benchmarking of all Models ---\n")
 ################################################################################
 # End of Script 3
 ################################################################################
