@@ -999,7 +999,7 @@ ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
   labs(
     title = "Confusion Matrix – Tuned RF (After SMOTE)",
     subtitle = "Evaluated on Test Set after SMOTE-NC Balancing",
-    x = "Predicted Class", y = "Actual Class"
+    x = "Predicted", y = "Actual"
   ) +
   theme_minimal() +
   theme(
@@ -1041,7 +1041,6 @@ data_train_bal <- bind_rows(no_data_sub, yes_data) %>%
 cat("\nAfter SMOTE (themis::smotenc):\n")
 print(table(data_train_bal$has_debit_card))
 str(data_train_bal)
-
 
 # Replace training data 
 data_train <- data_train_bal
@@ -1087,7 +1086,7 @@ ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
   labs(
     title = "Confusion Matrix – Tuned RF (After SMOTE)",
     subtitle = "Evaluated on Test Set after SMOTE-NC Balancing",
-    x = "Predicted Class", y = "Actual Class"
+    x = "Predicted", y = "Actual"
   ) +
   theme_minimal() +
   theme(
@@ -1096,6 +1095,248 @@ ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
   )
 
 # stopCluster(cl); registerDoSEQ()  # if parallel was used
+
+# ──────────────────────────────────────────────────────────────────────────────
+#### 12. Generalization check of tuned Random Forest on Nepal ####
+# ──────────────────────────────────────────────────────────────────────────────
+
+### Data Preparation 
+
+# Import data set
+df_nepal <- read_csv("data/microdata_nepal_raw.csv")
+
+# Select relevant variables
+df_nepal_selected <- df_nepal %>%
+  select(
+    female, age, educ, inc_q, emp_in, urbanicity_f2f,
+    account_fin, account_mob,
+    fin2, fin4, fin9, fin10,
+    fin14_1, fin14a, fin14a1, fin14b,
+    fin16, fin17a, fin17b,
+    fin20, fin22a, fin22b,
+    fin24, fin26, fin28, fin30,
+    fin37, fin38, fin42,
+    fin44a, fin44b, fin44c, fin44d, fin45_1,
+    saved, borrowed,
+    receive_wages, receive_transfers, receive_pension,
+    receive_agriculture, pay_utilities, remittances,
+    mobileowner, internetaccess, anydigpayment, merchantpay_dig
+  )
+
+# Rename variables for clarity
+df_nepal_renamed <- df_nepal_selected %>%
+  rename(
+    income_q         = inc_q,          # within-economy income quantile
+    employed         = emp_in,         # respondent is employed
+    urban            = urbanicity_f2f, # urban/rural area
+    has_debit_card   = fin2,           # owns a debit card
+    used_debit_card  = fin4,           # used a debit card
+    deposited        = fin9,           # made deposit
+    withdrew         = fin10,          # made withdrawal
+    mob_instore_pay  = fin14_1,        # mobile in-store payment
+    bill_paid_int    = fin14a,         # paid bills online
+    sent_money_int   = fin14a1,        # sent money online
+    bought_on_int    = fin14b,         # bought something online
+    saved_old_age    = fin16,          # saved for old age
+    saved_using_acc  = fin17a,         # saved using account
+    saved_inf_club   = fin17b,         # saved using informal club
+    borrow_med       = fin20,          # borrowed for medical needs
+    borrow_fin       = fin22a,         # borrowed from financial institution
+    borrow_friends   = fin22b,         # borrowed from family/friends
+    source_emergency = fin24,          # source of emergency funds
+    sent_dom_rem     = fin26,          # sent domestic remittance
+    received_dom_rem = fin28,          # received domestic remittance
+    paid_ut_bill     = fin30,          # paid utility bill
+    rec_gov_transfer = fin37,          # received government transfer
+    rec_gov_pension  = fin38,          # received government pension
+    rec_agri_payment = fin42,          # received agricultural payment
+    fin_worried_old  = fin44a,         # worried: old age
+    fin_worried_med  = fin44b,         # worried: medical
+    fin_worried_bil  = fin44c,         # worried: bills
+    fin_worried_edu  = fin44d,         # worried: education
+    fin_worried_cov  = fin45_1         # worried: COVID
+  )
+
+# Filter only respondents with financial accounts ####
+df_nepal_filtered <- df_nepal_renamed %>%
+  filter(account_fin == 1)
+
+# Select relevant predictors (government-known variables)
+df_nepal_final <- df_nepal_filtered %>%
+  select(
+    female, age, educ, urban, income_q, employed,
+    rec_gov_transfer, rec_gov_pension, rec_agri_payment,
+    paid_ut_bill, internetaccess, mobileowner, has_debit_card
+  )
+
+# Overview of the selected data
+
+skim(df_nepal_final)
+
+# Check variable ranges and missing values
+variable_summary(df_nepal_final, female)
+variable_summary(df_nepal_final, age)
+variable_summary(df_nepal_final, educ)
+variable_summary(df_nepal_final, urban)
+variable_summary(df_nepal_final, income_q)
+variable_summary(df_nepal_final, employed)
+variable_summary(df_nepal_final, rec_gov_transfer)
+variable_summary(df_nepal_final, rec_gov_pension)
+variable_summary(df_nepal_final, rec_agri_payment)
+variable_summary(df_nepal_final, paid_ut_bill)
+variable_summary(df_nepal_final, internetaccess)
+variable_summary(df_nepal_final, mobileowner)
+variable_summary(df_nepal_final, has_debit_card)
+
+# Clean binary and ordinal variables, handle missing values ####
+df_nepal_final <- df_nepal_final %>%
+  mutate(
+    female           = if_else(female == 2, 0L, female),
+    educ             = if_else(educ > 3, NA_integer_, educ),
+    urban            = if_else(urban == 2, 1L, 0L),
+    employed         = if_else(employed == 2, 0L, employed),
+    rec_gov_transfer = if_else(rec_gov_transfer > 2, NA_integer_, rec_gov_transfer),
+    rec_gov_transfer = if_else(rec_gov_transfer == 2, 0L, rec_gov_transfer),
+    rec_gov_pension  = if_else(rec_gov_pension > 2, NA_integer_, rec_gov_pension),
+    rec_gov_pension  = if_else(rec_gov_pension == 2, 0L, rec_gov_pension),
+    rec_agri_payment = if_else(rec_agri_payment > 2, NA_integer_, rec_agri_payment),
+    rec_agri_payment = if_else(rec_agri_payment == 2, 0L, rec_agri_payment),
+    paid_ut_bill     = if_else(paid_ut_bill > 2, NA_integer_, paid_ut_bill),
+    paid_ut_bill     = if_else(paid_ut_bill == 2, 0L, paid_ut_bill),
+    internetaccess   = if_else(internetaccess > 2, NA_integer_, internetaccess),
+    internetaccess   = if_else(internetaccess == 2, 0L, internetaccess),
+    mobileowner      = if_else(mobileowner > 2, NA_integer_, mobileowner),
+    mobileowner      = if_else(mobileowner == 2, 0L, mobileowner),
+    has_debit_card   = if_else(has_debit_card > 2, NA_integer_, has_debit_card),
+    has_debit_card   = if_else(has_debit_card == 2, 0L, has_debit_card)
+  ) %>%
+  mutate(across(everything(), as.integer)) %>%
+  filter(!is.na(has_debit_card))  # drop missing targets
+
+# Summary statistics
+df_nepal_summary <- df_nepal_final %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") %>%
+  group_by(Variable) %>%
+  summarise(
+    Observations        = sum(!is.na(Value)),
+    Mean                = mean(Value, na.rm = TRUE),
+    `Standard Deviation`= sd(Value, na.rm = TRUE),
+    Min                 = min(Value, na.rm = TRUE),
+    Max                 = max(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(across(where(is.numeric), round, 2))
+
+summary_table_nepal <- df_nepal_summary %>%
+  gt() %>%
+  fmt_number(columns = where(is.numeric), decimals = 2) %>%
+  opt_row_striping() %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_header(
+    title = md("**Summary Statistics – Cleaned India Microdata**"),
+    subtitle = md("Variables related to debit card ownership")
+  )
+
+print(summary_table_nepal)
+
+### Preparing data for modelling #
+
+# Convert binary integers to factors
+df_nepal_final$female          <- factor(df_nepal_final$female, levels = c(0,1), labels = c("male","female"))
+df_nepal_final$urban           <- factor(df_nepal_final$urban, levels = c(0,1), labels = c("rural","urban"))
+df_nepal_final$employed        <- factor(df_nepal_final$employed, levels = c(0,1), labels = c("unemployed","employed"))
+df_nepal_final$rec_gov_transfer<- factor(df_nepal_final$rec_gov_transfer, levels = c(0,1), labels = c("No","Yes"))
+df_nepal_final$rec_gov_pension <- factor(df_nepal_final$rec_gov_pension, levels = c(0,1), labels = c("No","Yes"))
+df_nepal_final$rec_agri_payment<- factor(df_nepal_final$rec_agri_payment, levels = c(0,1), labels = c("No","Yes"))
+df_nepal_final$paid_ut_bill    <- factor(df_nepal_final$paid_ut_bill, levels = c(0,1), labels = c("No","Yes"))
+df_nepal_final$internetaccess  <- factor(df_nepal_final$internetaccess, levels = c(0,1), labels = c("No","Yes"))
+df_nepal_final$mobileowner     <- factor(df_nepal_final$mobileowner, levels = c(0,1), labels = c("No","Yes"))
+df_nepal_final$has_debit_card  <- factor(df_nepal_final$has_debit_card, levels = c(0,1), labels = c("No","Yes"))
+
+# Convert ordinal variables
+df_nepal_final$educ <- factor(df_nepal_final$educ, 
+                        levels = c(1,2,3), 
+                        labels = c("primary_or_less","secondary","tertiary_or_more"), 
+                        ordered = TRUE)
+
+df_nepal_final$income_q <- factor(df_nepal_final$income_q, 
+                            level = c(1,2,3,4,5), 
+                            labels = c("poorest_20","second_20","middle_20","fourth_20","richest_20"), 
+                            ordered = TRUE)
+
+# Keep only complete cases
+df_nepal_final <- na.omit(df_nepal_final)
+
+### Data splitting
+
+# 70% training / 30% testing split
+set.seed(67)
+
+train_index_nepal <- createDataPartition(df_nepal_final$has_debit_card, p = 0.7, list = FALSE)
+data_train_nepal  <- df_nepal_final[train_index_nepal, ]
+data_test_nepal   <- df_nepal_final[-train_index_nepal, ]
+
+# Display training and test distributions
+cat("Training distribution:\n")
+print(table(data_train_nepal$has_debit_card))
+
+cat("Test distribution:\n")
+print(table(data_test_nepal$has_debit_card))
+
+# Visualize training set distribution
+train_dist_nepal <- data_train_nepal %>%
+  count(has_debit_card, name = "Count") %>%
+  mutate(
+    Percent = Count / sum(Count),
+    Class = has_debit_card
+  ) %>%
+  gt() %>%
+  fmt_percent(columns = "Percent", decimals = 1) %>%
+  cols_label() %>%
+  tab_header(title = "Training Set Distribution")
+
+print(train_dist_nepal)
+
+### Testing tuned RF on Nepal data
+
+# Predictions (class + probability)
+rf_pred_class_opt_nepal <- predict(rf_optimal, newdata = data_test_nepal, type = "response")
+rf_pred_prob_opt_nepal  <- predict(rf_optimal, newdata = data_test_nepal, type = "prob")[, "Yes"]
+
+# Confusion matrix with detailed stats
+cm_opt_nepal <- confusionMatrix(rf_pred_class_opt_nepal, data_test_nepal$has_debit_card, positive = "Yes")
+print(cm_opt_nepal)
+
+# Confusion matrix visualization
+cm_optimal_nepal <- as.data.frame(cm_opt_nepal$table)
+
+ggplot(cm_optimal_nepal, aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
+  scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
+  coord_equal() +
+  labs(
+    title = "Confusion Matrix – Nepal",
+    subtitle = "Optimized Random Forest (500 trees, mtry = 1)",
+    x = "Predicted", y = "Actual"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+
+# ROC + AUC
+roc_obj_opt_nepal <- roc(
+  response = data_test_nepal$has_debit_card,
+  predictor = rf_pred_prob_opt_nepal,
+  levels = c("No", "Yes"), direction = "<"
+)
+auc_opt_nepal <- auc(roc_obj_opt_nepal)
+cat("AUC (ROC) Tuned RF:", auc_opt, "\n")
 
 ################################################################################
 # End of Script 2
