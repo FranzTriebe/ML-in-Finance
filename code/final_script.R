@@ -2,7 +2,7 @@
 # MACHINE LEARNING IN FINANCE
 # India Microdata - Data Preparation and EDA
 # Authors: Heejung Jung & Luc Wuethrich
-# Runtime: 5s (excl. package installation)
+# Runtime: ca. 0 min 3s (excl. package installation)
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -401,7 +401,7 @@ df_final <- na.omit(df_final)
 # India Microdata - Random Forest Modeling
 # Authors: Alena Kohl & Franz Triebe
 # Seed: 67
-# Runtime: TBD (excl. 5. LOOCV)
+# Runtime: ca. 8 min 45s (excl. 5. Optimization with LOOCV) 
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -507,7 +507,7 @@ for (nt in tree_counts) {
 par(mfrow = c(1, 1))  # Reset plot layout
 
 # ──────────────────────────────────────────────────────────────────────────────
-#### 3. Optimization of mtry and ntree with OOB (Accuracy) ####
+#### 3. Optimisation of mtry and ntree with OOB (Accuracy) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -555,7 +555,7 @@ ggplot(results_oob, aes(x = mtry, y = Accuracy, color = factor(ntree))) +
   theme_minimal(base_size = 14)
 
 # ──────────────────────────────────────────────────────────────────────────────
-#### 4. Optimization of mtry and ntree with 10-Fold CV (ROC) ####
+#### 4. Optimisation of mtry and ntree with 10-Fold CV (ROC) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -604,7 +604,7 @@ ggplot(results_cv, aes(x = mtry, y = ROC, color = factor(ntree))) +
   theme_minimal(base_size = 14)
 
 # ──────────────────────────────────────────────────────────────────────────────
-#### 5. Optimization of mtry and ntree with LOOCV (ROC); WARNING - Runtime! ####
+#### 5. Optimisation of mtry and ntree with LOOCV (ROC); WARNING - Runtime! ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Warning: Very slow (can take several hours without parallelization)
@@ -994,7 +994,7 @@ ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
 # India Microdata – Decision Tree and Neural Network Modelling
 # Author: Jonah-Baptiste Lohmann
 # Seed: 67
-# Runtime: 40s
+# Runtime: ca. 0 min 40s
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
