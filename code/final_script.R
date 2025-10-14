@@ -1,11 +1,12 @@
 ################################################################################
 # MACHINE LEARNING IN FINANCE
-# India Microdata: Data Preparation and EDA
-# Authors: Heejung Jung, Luc Wuethrich
+# India Microdata - Data Preparation and EDA
+# Authors: Heejung Jung & Luc Wuethrich
+# Runtime: 5s (excl. package installation)
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 1. Load required libraries
+#### 1. Load required libraries ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 cat("\n 0.1) Load packages & set seed \n")
@@ -69,13 +70,13 @@ suppressPackageStartupMessages({
 })
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 2. Import dataset
+#### 2. Import dataset ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 df <- read_csv("data/raw/microdata_india_raw.csv")
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 3. Select relevant variables
+#### 3. Select relevant variables ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_selected <- df %>%
@@ -96,7 +97,7 @@ df_selected <- df %>%
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 4. Rename variables for clarity
+#### 4. Rename variables for clarity ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_renamed <- df_selected %>%
@@ -133,14 +134,14 @@ df_renamed <- df_selected %>%
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 5. Filter only respondents with financial accounts
+#### 5. Filter only respondents with financial accounts ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_filtered <- df_renamed %>%
   filter(account_fin == 1)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 6. Select relevant predictors (government-known variables)
+#### 6. Select relevant predictors (government-known variables) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_final <- df_filtered %>%
@@ -151,13 +152,13 @@ df_final <- df_filtered %>%
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 7. Overview of the selected data
+#### 7. Overview of the selected data ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 skim(df_final)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 8. Function to summarize variable ranges and missing values
+#### 8. Function to summarize variable ranges and missing values ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 variable_summary <- function(data, var) {
@@ -185,7 +186,7 @@ variable_summary(df_final, mobileowner)
 variable_summary(df_final, has_debit_card)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 9. Clean binary and ordinal variables, handle missing values
+#### 9. Clean binary and ordinal variables, handle missing values ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_final <- df_final %>%
@@ -213,7 +214,7 @@ df_final <- df_final %>%
   filter(!is.na(has_debit_card))  # drop missing targets
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 10. Summary statistics
+#### 10. Summary statistics ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 df_summary <- df_final %>%
@@ -245,7 +246,7 @@ summary_table <- df_summary %>%
 print(summary_table)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 11. Proportion barplots
+#### 11. Proportion barplots ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Convert continuous variables into factor groups
@@ -297,7 +298,7 @@ plots <- map(vars_to_plot, function(v) {
 walk(plots, print)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 12. Correlation matrix (numeric variables only)
+#### 12. Correlation matrix (numeric variables only) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 corr_mat <- cor(df_final, use = "pairwise.complete.obs")
@@ -331,7 +332,7 @@ corr_ord %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 13. Barplot of absolute correlations with target variable
+#### 13. Barplot of absolute correlations with target variable ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 target_col <- "has_debit_card"
@@ -359,7 +360,7 @@ cor_with_target %>%
   theme_minimal(base_size = 13)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 14. Preparing data for modelling
+#### 14. Preparing data for modelling ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Convert binary integers to factors
@@ -393,13 +394,14 @@ df_final <- na.omit(df_final)
 
 ################################################################################
 # MACHINE LEARNING IN FINANCE
-# India Microdata – Random Forest Modeling
-# Authors: Alena Kohl, Franz Triebe
-# seed = 67
+# India Microdata - Random Forest Modeling
+# Authors: Alena Kohl & Franz Triebe
+# Seed: 67
+# Runtime: TBD (excl. 5. LOOCV)
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 1. Data splitting
+#### 1. Data splitting ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Optionally enable parallelization for heavy training loops
@@ -435,7 +437,7 @@ train_dist <- data_train %>%
 train_dist
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 2. Tree stabilization analysis (OOB error)
+#### 2. Tree stabilization analysis (OOB error) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -501,7 +503,7 @@ for (nt in tree_counts) {
 par(mfrow = c(1, 1))  # Reset plot layout
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 3. Optimization of mtry and ntree with OOB (Accuracy)
+#### 3. Optimization of mtry and ntree with OOB (Accuracy) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -549,7 +551,7 @@ ggplot(results_oob, aes(x = mtry, y = Accuracy, color = factor(ntree))) +
   theme_minimal(base_size = 14)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 4. Optimization of mtry and ntree with 10-Fold CV (ROC)
+#### 4. Optimization of mtry and ntree with 10-Fold CV (ROC) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -598,7 +600,7 @@ ggplot(results_cv, aes(x = mtry, y = ROC, color = factor(ntree))) +
   theme_minimal(base_size = 14)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 5. Optimization of mtry and ntree with LOOCV (ROC)
+#### 5. Optimization of mtry and ntree with LOOCV (ROC); WARNING - Runtime! ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Warning: Very slow (can take several hours without parallelization)
@@ -646,7 +648,7 @@ ggplot(results_loocv, aes(x = mtry, y = ROC, color = factor(ntree))) +
   theme_minimal(base_size = 14)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 6. Model Evaluation on Test Data: Default vs Tuned
+#### 6. Model Evaluation on Test Data: Default vs Tuned ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 ### Default RF (500 trees, mtry = 3)
@@ -730,7 +732,7 @@ cat("AUC (ROC) Tuned RF:", auc_opt, "\n")
 # stopCluster(cl); registerDoSEQ()  # end parallel if started
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 7. Model Comparison Summary (with F1)
+#### 7. Model Comparison Summary (with F1) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 extract_metrics <- function(cm, auc_val, model_name) {
@@ -790,7 +792,7 @@ ggplot(comparison_long, aes(x = variable, y = value, fill = Model)) +
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 8. Feature Importance (Permutation & Gini)
+#### 8. Feature Importance (Permutation & Gini) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 ## Permutation importance – optimal RF
@@ -863,7 +865,7 @@ ggplot(imp_default, aes(x = MeanDecreaseGini, y = reorder(Variable, MeanDecrease
   theme(plot.title = element_text(face = "bold"))
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 9. Robustness Check – Remove Non-Significant Predictors
+#### 9. Robustness Check – Remove Non-Significant Predictors ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -909,7 +911,7 @@ ggplot(cm_optimal_select, aes(x = Prediction, y = Reference, fill = Freq)) +
   )
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 10. Apply SMOTE for Class Balancing
+#### 10. Apply SMOTE for Class Balancing ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 set.seed(67)
@@ -986,15 +988,16 @@ ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
 ################################################################################
 # MACHINE LEARNING IN FINANCE
 # India Microdata – Decision Tree and Neural Network Modelling
-# Authors: Jonah-Baptiste Lohmann
-# seed: 67
+# Author: Jonah-Baptiste Lohmann
+# Seed: 67
+# Runtime: 40s
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 1) Data Splitting (70 % train / 30 % test)
+#### 1. Data Splitting (70 % train / 30 % test) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
-cat("\n 1) Data Splitting (70% train / 30% test) \n")
+cat("\n 1. Data Splitting (70% train / 30% test) \n")
 
 # Stratified split to preserve class balance
 set.seed(67)
@@ -1009,13 +1012,13 @@ map(list(train = train, test = test),
       mutate(proportion = n / sum(n))
 ) %>% print()
 
-cat("\n===== Success: 1) Data split created =====\n")
+cat("\n===== Success: 1. Data split created =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 2) Helper Functions for Plots & Cross-Validation
+#### 2. Helper Functions for Plots & Cross-Validation ####
 # ──────────────────────────────────────────────────────────────────────────────
 
-cat("\n 2) Define helper functions for plots & cross-validation \n")
+cat("\n 2. Define helper functions for plots & cross-validation \n")
 
 # Generic confusion-matrix plotter for Decision Trees (blue palette)
 plot_cm_dt <- function(cm, title_txt) {
@@ -1053,14 +1056,13 @@ ctrl_cv <- trainControl(
   savePredictions = "final"
 )
 
-cat("\n===== Success: 2) Helper functions ready =====\n")
+cat("\n===== Success: 2. Helper functions ready =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 3) Decision Tree Model (Caret + rpart)
+#### 3. Decision Tree DEFAULT (cp = 0.01) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
-# ---- 3.1) Default DT: cp = 0.01 ----
-cat("\n 3.1) Decision Tree DEFAULT (cp = 0.01) \n")
+cat("\n 3. Decision Tree DEFAULT (cp = 0.01) \n")
 
 set.seed(67)
 dt_default <- caret::train(
@@ -1088,10 +1090,13 @@ cat("\n===== DT Default – Performance =====\n")
 cat(sprintf("ROC AUC = %.4f | Accuracy = %.4f\n", dt_auc_default, dt_acc_default))
 plot_cm_dt(dt_cm_default, "Confusion Matrix – Decision Tree (Default)")
 
-cat("\n==== Success: 3.1) DT DEFAULT trained ====\n")
+cat("\n==== Success: 3. DT DEFAULT trained ====\n")
 
-# ---- 3.2) Tuned DT: 10-Fold CV on cp [0.001 – 0.003] ----
-cat("\n 3.2) Decision Tree TUNED (10-fold CV on cp) \n")
+# ──────────────────────────────────────────────────────────────────────────────
+#### 4. Decision Tree TUNED: 10-Fold CV on cp [0.001;0.003] ####
+# ──────────────────────────────────────────────────────────────────────────────
+
+cat("\n 4. Decision Tree TUNED (10-fold CV on cp) \n")
 
 set.seed(67)
 dt_tuned <- caret::train(
@@ -1126,10 +1131,13 @@ plot_cm_dt(dt_cm_tuned, "Confusion Matrix – Decision Tree (Tuned)")
 # Store metrics for later model comparison
 metrics_dt_final <- c(ROC = dt_auc_tuned, Accuracy = dt_acc_tuned)
 
-cat("\n===== Success: 3.2) DT TUNED completed =====\n")
+cat("\n===== Success: 4. DT TUNED completed =====\n")
 
-# ---- 3.3) Interpretability: Variable Importance + Tree Structure ----
-cat("\n 3.3) DT INTERPRETABILITY: Variable Importance & Structure \n")
+# ──────────────────────────────────────────────────────────────────────────────
+#### 5. Decision Tree: Interpretability ####
+# ──────────────────────────────────────────────────────────────────────────────
+
+cat("\n 5. DT INTERPRETABILITY: Variable Importance & Structure \n")
 
 # Variable importance (top 12)
 vi_dt <- caret::varImp(dt_tuned)$importance %>%
@@ -1155,13 +1163,13 @@ rpart.plot(
   main = "Decision Tree (Tuned): Structure & Node Visualization"
 )
 
-cat("\n===== Success: 3.3) DT INTERPRETABILITY complete =====\n")
+cat("\n===== Success: 5. DT INTERPRETABILITY complete =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 4) Neural Network DEFAULT: size = 5, decay = 0
+#### 6. Neural Network DEFAULT: size = 5, decay = 0 ####
 # ──────────────────────────────────────────────────────────────────────────────
 
-cat("\n 4) Neural Network DEFAULT (size = 5, decay = 0) \n")
+cat("\n 6. Neural Network DEFAULT (size = 5, decay = 0) \n")
 
 set.seed(67)
 nn_default <- caret::train(
@@ -1197,13 +1205,13 @@ cat(sprintf("ROC AUC = %.4f  |  Accuracy = %.4f\n", nn_auc_default, nn_acc_defau
 # Visualize confusion matrix
 plot_cm_nn(nn_cm_default, "Confusion Matrix – Neural Network (Default)")
 
-cat("\n===== Success: 4) NN DEFAULT completed =====\n")
+cat("\n===== Success: 6. NN DEFAULT completed =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 5) Neural Network TUNED: 10-Fold CV on size & decay
+#### 7. Neural Network TUNED: 10-Fold CV on size & decay ####
 # ──────────────────────────────────────────────────────────────────────────────
 
-cat("\n 5) Neural Network TUNED (10-fold CV on size & decay) \n")
+cat("\n 7. Neural Network TUNED (10-fold CV on size & decay) \n")
 
 set.seed(67)
 nn_tuned <- caret::train(
@@ -1248,13 +1256,13 @@ plot_cm_nn(nn_cm_tuned, "Confusion Matrix – Neural Network (Tuned)")
 # Store final metrics
 metrics_nn_final <- c(ROC = nn_auc_tuned, Accuracy = nn_acc_tuned)
 
-cat("\n===== Success: 5) NN TUNED completed =====\n")
+cat("\n===== Success: 7. NN TUNED completed =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 6) Neural Network INTERPRETABILITY
+#### 8. Neural Network: Interpretability ####
 # ──────────────────────────────────────────────────────────────────────────────
 
-cat("\n 6) NN INTERPRETABILITY: Visualize the final network \n")
+cat("\n 8. NN INTERPRETABILITY: Visualize the final network \n")
 
 # Plot neural-network architecture (inputs → hidden → output)
 plotnet(
@@ -1270,10 +1278,10 @@ plotnet(
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 7) Model Comparison – Decision Tree vs Random Forest vs Neural Network
+#### 9. Model Comparison: Decision Tree vs Random Forest vs Neural Network ####
 # ──────────────────────────────────────────────────────────────────────────────
 
-## 7 – Ensure RF metrics exist for fair comparison
+## Ensure RF metrics exist for fair comparison
 rf_prob_tuned <- rf_pred_prob_opt
 rf_cm_tuned   <- cm_opt
 
@@ -1292,7 +1300,7 @@ if (!exists("rf_auc_tuned")) rf_auc_tuned <- NA_real_
 if (!exists("rf_cm_tuned"))  rf_cm_tuned  <- NULL
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 8) Extract Secondary Metrics from Confusion Matrices
+#### 10. Extract Secondary Metrics from Confusion Matrices ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 extract_cm_metrics <- function(cm_obj) {
@@ -1317,7 +1325,7 @@ nn_sec <- extract_cm_metrics(nn_cm_tuned)
 rf_sec <- extract_cm_metrics(rf_cm_tuned)
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 9) Pairwise Comparisons (DT vs RF, NN vs RF, DT vs NN)
+#### 11. Pairwise Comparisons (DT vs RF, NN vs RF, DT vs NN) ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 comp_dt_rf <- tibble(
@@ -1344,10 +1352,10 @@ comp_dt_nn <- tibble(
 cat("\n===== Decision Tree vs Neural Net =====\n")
 print(comp_dt_nn)
 
-cat("\n===== Success: 9) Pairwise comparisons complete =====\n")
+cat("\n===== Success: 11. Pairwise comparisons complete =====\n")
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 10) Benchmarking All Models
+#### 12. Benchmarking of all Models ####
 # ──────────────────────────────────────────────────────────────────────────────
 
 all_metrics <- bind_rows(
@@ -1380,8 +1388,7 @@ ggplot(all_metrics, aes(x = Metric, y = Value, fill = Model)) +
   ) +
   theme_minimal(base_size = 14)
 
-cat("\n===== Success: 10) Benchmarking complete =====\n")
-cat("\n===== 03_alternative_models.R DONE =====\n")
+cat("\n===== Success: 12. Benchmarking complete =====\n")
 
 ################################################################################
 # End of Script 3
