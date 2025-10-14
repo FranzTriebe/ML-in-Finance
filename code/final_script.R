@@ -1024,7 +1024,7 @@ data_train_bal <- smotenc(
   df = df_train_old,
   var = "has_debit_card",  # Target variable
   k = 5,                   # Number of neighbors
-  over_ratio = 806/1006           # 1:1 ratio (watch for potential overfitting)
+  over_ratio = 806/1006    #oversampling ratio
 )
 
 set.seed(67)
