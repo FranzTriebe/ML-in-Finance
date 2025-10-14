@@ -33,6 +33,9 @@ pkgs <- c(
   # Specific model engines
   "randomForest", "rpart", "rpart.plot", "nnet", "NeuralNetTools",
   
+  # Reshaping and data transformation
+  "reshape2", 
+  
   # Optional (parallel computing)
   "doParallel"
 )
@@ -66,6 +69,7 @@ suppressPackageStartupMessages({
   library(rpart.plot)      # Decision Tree visualization
   library(nnet)            # Neural Networks
   library(NeuralNetTools)  # NN visualization
+  library(reshape2)      # Data transformation
   library(doParallel)      # Parallel processing (optional)
 })
 
@@ -749,7 +753,7 @@ extract_metrics <- function(cm, auc_val, model_name) {
     F1 = f1,
     Specificity = cm$byClass["Specificity"],
     Balanced_Accuracy = cm$byClass["Balanced Accuracy"],
-    AUC = auc_val
+    AUC = as.numeric(auc_val)   
   )
 }
 
