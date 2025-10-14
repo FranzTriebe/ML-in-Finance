@@ -2,7 +2,7 @@
 # MACHINE LEARNING IN FINANCE
 # India Microdata - Data Preparation and EDA
 # Authors: Heejung Jung & Luc Wuethrich
-# Runtime: ca. 0 min 3s (excl. package installation)
+# Runtime: ca. 0min 5s (excl. packages installation)
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -401,7 +401,7 @@ df_final <- na.omit(df_final)
 # India Microdata - Random Forest Modeling
 # Authors: Alena Kohl & Franz Triebe
 # Seed: 67
-# Runtime: ca. 8 min 45s (excl. 5. Optimization with LOOCV) 
+# Runtime: ca. 8min 45s (excl. 5. Optimization with LOOCV) 
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -994,7 +994,7 @@ ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
 # India Microdata – Decision Tree and Neural Network Modelling
 # Author: Jonah-Baptiste Lohmann
 # Seed: 67
-# Runtime: ca. 0 min 40s
+# Runtime: ca. 0min 40s
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
