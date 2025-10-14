@@ -938,7 +938,8 @@ cat("\nAfter SMOTE (themis::smotenc):\n")
 print(table(data_train_bal$has_debit_card))
 str(data_train_bal)
 
-# Replace training data
+# Replace training data but storing the old one
+data_train_old <- data_train
 data_train <- data_train_bal
 
 # Visualize class distribution after SMOTE
@@ -961,8 +962,103 @@ rf_optimal_smote <- randomForest(
 )
 
 rf_pred_class_optimal_smote <- predict(rf_optimal_smote, newdata = data_test, type = "response")
+rf_pred_prob_optimal_smote  <- predict(rf_optimal_smote, newdata = data_test, type = "prob")[, "Yes"]
 cm_optimal_smote <- confusionMatrix(rf_pred_class_optimal_smote, data_test$has_debit_card, positive = "Yes")
 print(cm_optimal_smote)
+
+#AUC ROC
+roc_smote <- roc(data_test$has_debit_card, rf_pred_prob_optimal_smote, levels = c("No", "Yes"))
+auc_smote <- auc(roc_smote)
+cat("\nAUC (ROC) – Tuned RF (After SMOTE):", round(auc_smote, 4), "\n")
+plot(roc_smote, col = "purple4", lwd = 3, main = sprintf("ROC Curve – Tuned RF (After SMOTE)\nAUC = %.3f", auc_smote))
+
+# Confusion matrix visualization after SMOTE
+cm_o_s <- as.data.frame(cm_optimal_smote$table)
+
+ggplot(cm_o_s, aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), color = "white", size = 6, fontface = "bold") +
+  scale_fill_gradient(low = "plum1", high = "plum4", name = "Freq") +
+  coord_equal() +
+  labs(
+    title = "Confusion Matrix – Tuned RF (After SMOTE)",
+    subtitle = "Evaluated on Test Set after SMOTE-NC Balancing",
+    x = "Predicted Class", y = "Actual Class"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+
+# ──────────────────────────────────────────────────────────────────────────────
+#### 11. Adapt SMOTE for Class Balancing without overfitting ####
+# ──────────────────────────────────────────────────────────────────────────────
+
+set.seed(67)
+
+cat("\nBefore SMOTE:\n")
+print(table(data_train_old$has_debit_card))
+
+# Convert to data frame (for themis compatibility)
+df_train_old <- as.data.frame(data_train_old)
+
+# Apply SMOTENC balancing
+data_train_bal <- smotenc(
+  df = df_train_old,
+  var = "has_debit_card",  # Target variable
+  k = 5,                   # Number of neighbors
+  over_ratio = 806/1006           # 1:1 ratio (watch for potential overfitting)
+)
+
+set.seed(67)
+no_data  <- data_train_bal %>% filter(has_debit_card == "No")
+yes_data <- data_train_bal %>% filter(has_debit_card == "Yes")
+
+no_data_sub <- no_data %>% sample_n(nrow(no_data) - 200, replace = FALSE)
+
+# Neu zusammenfügen & mischen
+data_train_bal <- bind_rows(no_data_sub, yes_data) %>%
+  sample_frac(1) %>%
+  mutate(has_debit_card = factor(has_debit_card, levels = c("No", "Yes")))
+
+cat("\nAfter SMOTE (themis::smotenc):\n")
+print(table(data_train_bal$has_debit_card))
+str(data_train_bal)
+
+
+# Replace training data 
+data_train <- data_train_bal
+
+# Visualize class distribution after SMOTE
+train_dist_smote <- data_train_bal %>%
+  count(has_debit_card, name = "Count") %>%
+  mutate(Percent = Count / sum(Count), Class = has_debit_card) %>%
+  gt() %>%
+  fmt_percent(columns = "Percent", decimals = 1) %>%
+  cols_label() %>%
+  tab_header(title = "Training Set Distribution (SMOTE-NC)")
+
+train_dist_smote
+
+# Train tuned RF after SMOTE
+set.seed(67)
+rf_optimal_smote <- randomForest(
+  has_debit_card ~ ., data = data_train,
+  importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
+  ntree = 500, mtry = 6
+)
+
+rf_pred_class_optimal_smote <- predict(rf_optimal_smote, newdata = data_test, type = "response")
+rf_pred_prob_optimal_smote  <- predict(rf_optimal_smote, newdata = data_test, type = "prob")[, "Yes"]
+cm_optimal_smote <- confusionMatrix(rf_pred_class_optimal_smote, data_test$has_debit_card, positive = "Yes")
+print(cm_optimal_smote)
+
+#AUC ROC
+roc_smote <- roc(data_test$has_debit_card, rf_pred_prob_optimal_smote, levels = c("No", "Yes"))
+auc_smote <- auc(roc_smote)
+cat("\nAUC (ROC) – Tuned RF (After SMOTE):", round(auc_smote, 4), "\n")
+plot(roc_smote, col = "purple4", lwd = 3, main = sprintf("ROC Curve – Tuned RF (After SMOTE)\nAUC = %.3f", auc_smote))
 
 # Confusion matrix visualization after SMOTE
 cm_o_s <- as.data.frame(cm_optimal_smote$table)
