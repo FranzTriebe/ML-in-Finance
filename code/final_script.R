@@ -1062,7 +1062,7 @@ set.seed(67)
 rf_optimal_smote <- randomForest(
   has_debit_card ~ ., data = data_train,
   importance = TRUE, keep.forest = TRUE, keep.inbag = TRUE,
-  ntree = 500, mtry = 6
+  ntree = 500, mtry = 5
 )
 
 rf_pred_class_optimal_smote <- predict(rf_optimal_smote, newdata = data_test, type = "response")
