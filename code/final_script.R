@@ -3,6 +3,7 @@
 # India Microdata - Data Preparation and EDA
 # Authors: Heejung Jung & Luc Wuethrich
 # Runtime: ca. 0min 05s (excl. packages installation)
+# AI helper tool: GPT-5
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -434,7 +435,8 @@ cat("\n--- End: 14. Preparing data for modelling ---\n")
 # India Microdata - Random Forest Modeling
 # Authors: Alena Kohl & Franz Triebe
 # Seed: 67
-# Runtime: ca. 9min 00s (excl. 5. Optimization with LOOCV) 
+# Runtime: ca. 9min 00s (excl. 5. Optimization with LOOCV)
+# AI helper tool: GPT-5
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1420,6 +1422,7 @@ cat("\n--- End: 12. Generalization check of tuned Random Forest on Nepal ---\n")
 # Author: Jonah-Baptiste Lohmann
 # Seed: 67
 # Runtime: ca. 0min 40s
+# AI helper tool: GPT-5
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
