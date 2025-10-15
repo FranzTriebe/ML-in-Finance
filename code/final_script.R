@@ -80,7 +80,7 @@ cat("\n--- End: 1. Load required libraries ---\n")
 cat("\n--- Start: 2. Import dataset ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
-df <- read_csv("data/raw/microdata_india_raw.csv")
+df <- read_csv("data/microdata_india_raw.csv")
 
 # ──────────────────────────────────────────────────────────────────────────────
 cat("\n--- End: 2. Import dataset ---\n")
@@ -419,6 +419,8 @@ df_final$income_q <- factor(df_final$income_q,
 
 # Keep only complete cases
 df_final <- na.omit(df_final)
+
+cat("\n--- End: 14. Preparing data for modelling ---\n")
 ################################################################################
 # END OF SCRIPT 1
 ################################################################################
@@ -432,7 +434,6 @@ df_final <- na.omit(df_final)
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
-cat("\n--- End: 14. Preparing data for modelling ---\n")
 #### 1. Data splitting ####
 cat("\n--- Start: 1. Data splitting ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1208,7 +1209,7 @@ df_nepal_renamed <- df_nepal_selected %>%
     fin_worried_cov  = fin45_1         # worried: COVID
   )
 
-# Filter only respondents with financial accounts ####
+# Filter only respondents with financial accounts
 df_nepal_filtered <- df_nepal_renamed %>%
   filter(account_fin == 1)
 
@@ -1239,7 +1240,7 @@ variable_summary(df_nepal_final, internetaccess)
 variable_summary(df_nepal_final, mobileowner)
 variable_summary(df_nepal_final, has_debit_card)
 
-# Clean binary and ordinal variables, handle missing values ####
+# Clean binary and ordinal variables, handle missing values
 df_nepal_final <- df_nepal_final %>%
   mutate(
     female           = if_else(female == 2, 0L, female),
@@ -1264,7 +1265,8 @@ df_nepal_final <- df_nepal_final %>%
   mutate(across(everything(), as.integer)) %>%
   filter(!is.na(has_debit_card))  # drop missing targets
 
-# Summary statistics
+
+### Summary statistics
 df_nepal_summary <- df_nepal_final %>%
   pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") %>%
   group_by(Variable) %>%
@@ -1293,7 +1295,8 @@ summary_table_nepal <- df_nepal_summary %>%
 
 print(summary_table_nepal)
 
-### Preparing data for modelling #
+
+### Preparing data for modelling
 
 # Convert binary integers to factors
 df_nepal_final$female          <- factor(df_nepal_final$female, levels = c(0,1), labels = c("male","female"))
@@ -1320,6 +1323,7 @@ df_nepal_final$income_q <- factor(df_nepal_final$income_q,
 
 # Keep only complete cases
 df_nepal_final <- na.omit(df_nepal_final)
+
 
 ### Data splitting
 
@@ -1350,6 +1354,7 @@ train_dist_nepal <- data_train_nepal %>%
   tab_header(title = "Training Set Distribution")
 
 print(train_dist_nepal)
+
 
 ### Testing tuned RF on Nepal data
 
@@ -1389,6 +1394,7 @@ roc_obj_opt_nepal <- roc(
 auc_opt_nepal <- auc(roc_obj_opt_nepal)
 cat("AUC (ROC) Tuned RF:", auc_opt, "\n")
 
+cat("\n--- End: 12. Generalization check of tuned Random Forest on Nepal ---\n")
 ################################################################################
 # End of Script 2
 ################################################################################
@@ -1402,7 +1408,6 @@ cat("AUC (ROC) Tuned RF:", auc_opt, "\n")
 ################################################################################
 
 # ──────────────────────────────────────────────────────────────────────────────
-cat("\n--- End: 12. Generalization check of tuned Random Forest on Nepal ---\n")
 #### 1. Data Splitting (70 % train / 30 % test) ####
 cat("\n--- Start: 1. Data Splitting (70 % train / 30 % test) ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
