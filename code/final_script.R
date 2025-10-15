@@ -80,6 +80,10 @@ cat("\n--- End: 1. Load required libraries ---\n")
 cat("\n--- Start: 2. Import dataset ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
 
+# Optionally enable parallelization for heavy training loops
+# cl <- makeCluster(detectCores() - 3)
+# registerDoParallel(cl)
+
 df <- read_csv("data/microdata_india_raw.csv")
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -251,7 +255,7 @@ df_summary <- df_final %>%
     Max                 = max(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  mutate(across(where(is.numeric), round, 2))
+  mutate(across(where(is.numeric), \(x) round(x, 2)))
 
 summary_table <- df_summary %>%
   gt() %>%
@@ -437,10 +441,6 @@ cat("\n--- End: 14. Preparing data for modelling ---\n")
 #### 1. Data splitting ####
 cat("\n--- Start: 1. Data splitting ---\n")
 # ──────────────────────────────────────────────────────────────────────────────
-
-# Optionally enable parallelization for heavy training loops
-# cl <- makeCluster(detectCores() - 3)
-# registerDoParallel(cl)
 
 # 70% training / 30% testing split
 set.seed(67)
@@ -805,8 +805,6 @@ roc_obj_opt <- roc(
 )
 auc_opt <- auc(roc_obj_opt)
 cat("AUC (ROC) Tuned RF:", auc_opt, "\n")
-
-# stopCluster(cl); registerDoSEQ()  # end parallel if started
 
 # ──────────────────────────────────────────────────────────────────────────────
 cat("\n--- End: 6. Model Evaluation on Test Data: Default vs Tuned ---\n")
@@ -1844,6 +1842,9 @@ ggplot(all_metrics, aes(x = Metric, y = Value, fill = Model)) +
 
 cat("\n===== Success: 12. Benchmarking complete =====\n")
 cat("\n--- End: 12. Benchmarking of all Models ---\n")
+
+# stopCluster(cl); registerDoSEQ()  # end parallel if started
 ################################################################################
 # End of Script 3
 ################################################################################
+
