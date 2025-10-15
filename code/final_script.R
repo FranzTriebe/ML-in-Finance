@@ -1817,10 +1817,10 @@ cat("\n===== Plot Benchmark Bar Chart Across Models =====\n")
 ggplot(all_metrics, aes(x = Metric, y = Value, fill = Model)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.8) +
   scale_fill_manual(values = model_colors) +
-  coord_cartesian(ylim = c(0.5, 0.85)) +
+  coord_cartesian(ylim = c(0.45, 0.85)) +
   labs(
     title = "Benchmarking Decision Tree vs Random Forest vs Neural Net",
-    subtitle = "Primary: ROC & Accuracy • Secondary: Balanced Accuracy, Sensitivity, Specificity",
+    subtitle = "Primary: ROC • Secondary: Accuracy, Balanced Accuracy, Sensitivity, Specificity",
     x = "Metric", y = "Score", fill = "Model"
   ) +
   theme_minimal(base_size = 14)
