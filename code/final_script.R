@@ -547,10 +547,16 @@ cat("\n--- Start: 3. Optimisation of mtry and ntree with OOB (Accuracy) ---\n")
 set.seed(67)
 
 p <- ncol(data_train) - 1
+# Define tuning grid for mtry (number of variables randomly sampled at each split)
 tune_grid <- expand.grid(.mtry = 1:p)
+
+# Define number of trees to evaluate
 ntree_values <- c(100, 200, 500, 750, 1000)
 
+# Use Out-of-Bag samples for internal error estimation
 control_oob <- trainControl(method = "oob")
+
+# Prepare an empty list to store results for each ntree
 results_oob <- list()
 
 for (nt in ntree_values) {
@@ -565,14 +571,17 @@ for (nt in ntree_values) {
     ntree = nt
   )
   
+  # Add metadata for tracking and store results
   rf_oob$results$ntree <- nt
   rf_oob$results$type  <- "OOB"
   
   results_oob[[paste0("ntree_", nt)]] <- rf_oob$results
 }
 
+# Combine results from all ntree runs
 results_oob <- bind_rows(results_oob)
 
+# Define color palette
 cols <- brewer.pal(6, "BuPu")[2:6]
 
 ggplot(results_oob, aes(x = mtry, y = Accuracy, color = factor(ntree))) +
@@ -596,6 +605,7 @@ cat("\n--- Start: 4. Optimisation of mtry and ntree with 10-Fold CV (ROC) ---\n"
 
 set.seed(67)
 
+# Define 10-fold CV settings and ROC metric for classification
 control_cv <- trainControl(
   method = "cv",
   number = 10,
@@ -604,6 +614,7 @@ control_cv <- trainControl(
   summaryFunction = twoClassSummary
 )
 
+# Prepare empty list to collect results for each ntree
 results_cv <- list()
 
 for (nt in ntree_values) {
@@ -618,12 +629,14 @@ for (nt in ntree_values) {
     ntree = nt
   )
   
+  # Add metadata and store results
   rf_cv$results$ntree <- nt
   rf_cv$results$type  <- "CV_10fold"
   
   results_cv[[paste0("ntree_", nt)]] <- rf_cv$results
 }
 
+# Combine all CV results
 results_cv <- bind_rows(results_cv)
 
 ggplot(results_cv, aes(x = mtry, y = ROC, color = factor(ntree))) +
@@ -648,6 +661,7 @@ cat("\n--- Start: 5. Optimisation of mtry and ntree with LOOCV (ROC); WARNING - 
 # Warning: Very slow (can take several hours without parallelization)
 set.seed(67)
 
+# Define LOOCV settings and ROC metric for classification
 control_loocv <- trainControl(
   method = "LOOCV",
   search = "grid",
@@ -655,6 +669,7 @@ control_loocv <- trainControl(
   summaryFunction = twoClassSummary
 )
 
+# Prepare empty list to collect results for each ntree
 results_loocv <- list()
 
 for (nt in ntree_values) {
@@ -669,12 +684,14 @@ for (nt in ntree_values) {
     ntree = nt
   )
   
+  # Add metadata and store results
   rf_loocv$results$ntree <- nt
   rf_loocv$results$type  <- "LOOCV"
   
   results_loocv[[paste0("ntree_", nt)]] <- rf_loocv$results
 }
 
+# Combine all LOOCV results
 results_loocv <- bind_rows(results_loocv)
 
 ggplot(results_loocv, aes(x = mtry, y = ROC, color = factor(ntree))) +
